@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { BanDetails, User } from 'prisma/generated-types/client';
 import type { SignUpRequest } from 'src/generated-types/auth';
+import type { AllUsersRequest, PaginationMeta } from 'src/generated-types/user';
 
 @Injectable()
 export class UserRepository {
@@ -23,6 +24,26 @@ export class UserRepository {
     return await this.prisma.user.findUnique({
       where: { id },
     });
+  }
+
+  // Get all users with pagination
+  async getAllUsers({ page = 1, limit = 25 }: AllUsersRequest): Promise<{ users: User[]; meta: PaginationMeta }> {
+    this.logger.log(`Fetching all users with skip: ${page}, take: ${limit}`);
+    const [users, totalUsers] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count(),
+    ]);
+    const meta = {
+      page,
+      limit,
+      totalItems: totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+    };
+    return { users, meta };
   }
 
   // Create a new user in the database

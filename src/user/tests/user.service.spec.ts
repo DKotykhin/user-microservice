@@ -26,6 +26,7 @@ describe('UserService', () => {
 
   const userRepositoryMock = {
     findUserById: jest.fn(),
+    getAllUsers: jest.fn(),
     updateUser: jest.fn(),
     deleteUser: jest.fn(),
     getBannedUsers: jest.fn(),
@@ -70,6 +71,45 @@ describe('UserService', () => {
       userRepositoryMock.findUserById.mockRejectedValue(new Error('DB error'));
 
       await expect(service.getUserById('user-1')).rejects.toBeInstanceOf(AppError);
+    });
+  });
+
+  describe('getAllUsers', () => {
+    const paginationInput = { page: 1, limit: 25, totalItems: 0, totalPages: 0 };
+
+    it('should return all users with pagination meta', async () => {
+      const users = [
+        { ...baseUser, id: 'user-1' },
+        { ...baseUser, id: 'user-2' },
+      ];
+      const meta = { page: 1, limit: 25, totalItems: 2, totalPages: 1 };
+      userRepositoryMock.getAllUsers.mockResolvedValue({ users, meta });
+
+      const result = await service.getAllUsers(paginationInput);
+
+      expect(result.users.length).toBe(2);
+      expect(result.users[0].role).toBe(UserRole.USER);
+      expect(result.meta).toEqual(meta);
+    });
+
+    it('should convert user roles correctly', async () => {
+      const users = [
+        { ...baseUser, id: 'user-1', role: 'ADMIN' },
+        { ...baseUser, id: 'user-2', role: 'USER' },
+      ];
+      const meta = { page: 1, limit: 25, totalItems: 2, totalPages: 1 };
+      userRepositoryMock.getAllUsers.mockResolvedValue({ users, meta });
+
+      const result = await service.getAllUsers(paginationInput);
+
+      expect(result.users[0].role).toBe(UserRole.ADMIN);
+      expect(result.users[1].role).toBe(UserRole.USER);
+    });
+
+    it('should throw internal server error on repository failure', async () => {
+      userRepositoryMock.getAllUsers.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.getAllUsers(paginationInput)).rejects.toBeInstanceOf(AppError);
     });
   });
 

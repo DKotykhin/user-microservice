@@ -10,11 +10,13 @@ const prismaMock = {
     update: jest.fn(),
     delete: jest.fn(),
     findMany: jest.fn(),
+    count: jest.fn(),
   },
   banDetails: {
     findMany: jest.fn(),
     create: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 describe('UserRepository', () => {
@@ -57,6 +59,55 @@ describe('UserRepository', () => {
         where: { id: '1' },
       });
       expect(result?.id).toBe('1');
+    });
+  });
+
+  describe('getAllUsers', () => {
+    it('should fetch all users with pagination', async () => {
+      const users = [
+        { id: '1', email: 'user1@test.com' },
+        { id: '2', email: 'user2@test.com' },
+      ];
+      prismaMock.$transaction.mockResolvedValue([users, 2]);
+
+      const result = await repository.getAllUsers({ page: 1, limit: 25 });
+
+      expect(prismaMock.$transaction).toHaveBeenCalled();
+      expect(result.users).toEqual(users);
+      expect(result.meta).toEqual({
+        page: 1,
+        limit: 25,
+        totalItems: 2,
+        totalPages: 1,
+      });
+    });
+
+    it('should handle multiple pages correctly', async () => {
+      const users = [{ id: '1', email: 'user1@test.com' }];
+      prismaMock.$transaction.mockResolvedValue([users, 50]);
+
+      const result = await repository.getAllUsers({ page: 1, limit: 25 });
+
+      expect(result.meta).toEqual({
+        page: 1,
+        limit: 25,
+        totalItems: 50,
+        totalPages: 2,
+      });
+    });
+
+    it('should calculate correct skip for page 2', async () => {
+      const users = [{ id: '3', email: 'user3@test.com' }];
+      prismaMock.$transaction.mockResolvedValue([users, 100]);
+
+      const result = await repository.getAllUsers({ page: 2, limit: 10 });
+
+      expect(result.meta).toEqual({
+        page: 2,
+        limit: 10,
+        totalItems: 100,
+        totalPages: 10,
+      });
     });
   });
 

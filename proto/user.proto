@@ -7,7 +7,7 @@ import "google/protobuf/empty.proto";
 
 // UserService defines the gRPC service for managing users.
 service UserService {
-  // --- user access rpc methods ---
+  // --- user access rpc methods --- //
   // rpc to get user by id
   rpc GetUserById(Id) returns (User) {}
   // rpc to update an existing user
@@ -19,7 +19,9 @@ service UserService {
   // rpc to change user password
   rpc ChangePassword(PasswordRequest) returns (StatusResponse) {}
 
-  // --- admin access rpc methods ---
+  // --- admin access rpc methods --- //
+  // rpc to get all users
+  rpc GetAllUsers(AllUsersRequest) returns (AllUsersResponse) {}
   // rpc to ban a user by id
   rpc BanUser(BanUserRequest) returns (User) {}
   // rpc to unban a user by id
@@ -113,6 +115,26 @@ message PasswordRequest {
 message UserRoleRequest {
   string id = 1;
   UserRole role = 2;
+}
+
+// Messages for paginated user retrieval
+message AllUsersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+// Message for paginated user response
+message AllUsersResponse {
+  repeated User users = 1;
+  PaginationMeta meta = 2;
+}
+
+// Message for pagination metadata
+message PaginationMeta {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total_items = 3;
+  int32 total_pages = 4;
 }
 
 // Command to generate TypeScript code with NestJS options, using null for optional fields and Date for timestamps

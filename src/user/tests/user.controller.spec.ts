@@ -9,6 +9,7 @@ describe('UserController', () => {
 
   const userServiceMock = {
     getUserById: jest.fn(),
+    getAllUsers: jest.fn(),
     updateUser: jest.fn(),
     deleteUser: jest.fn(),
     confirmPassword: jest.fn(),
@@ -43,6 +44,22 @@ describe('UserController', () => {
 
       expect(userServiceMock.getUserById).toHaveBeenCalledWith('user-1');
       expect(result).toEqual({ id: 'user-1' });
+    });
+  });
+
+  describe('getAllUsers', () => {
+    it('should call userService.getAllUsers', async () => {
+      const paginationData = { page: 1, limit: 25, totalItems: 0, totalPages: 0 };
+      const mockResponse = {
+        users: [{ id: 'user-1' }, { id: 'user-2' }],
+        meta: { page: 1, limit: 25, totalItems: 2, totalPages: 1 },
+      };
+      userServiceMock.getAllUsers.mockResolvedValue(mockResponse);
+
+      const result = await controller.getAllUsers(paginationData);
+
+      expect(userServiceMock.getAllUsers).toHaveBeenCalledWith(paginationData);
+      expect(result).toEqual(mockResponse);
     });
   });
 

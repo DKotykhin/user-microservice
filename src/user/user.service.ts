@@ -7,9 +7,11 @@ import type { UserRole as PrismaUserRole } from 'prisma/generated-types/enums';
 
 import {
   UserRole,
+  type AllUsersResponse,
   type BanDetailsResponse,
   type BanUserRequest,
   type GetBannedUsersResponse,
+  type PaginationMeta,
   type PasswordRequest,
   type StatusResponse,
   type UpdateUserRequest,
@@ -41,6 +43,21 @@ export class UserService {
       this.logger.error(`Error fetching user: ${error instanceof Error ? error.message : error}`);
       if (error instanceof AppError) throw error;
       throw AppError.internalServerError('Failed to fetch user');
+    }
+  }
+
+  async getAllUsers(data: PaginationMeta): Promise<AllUsersResponse> {
+    this.logger.log('Fetching all users');
+    try {
+      const { users, meta } = await this.userRepository.getAllUsers(data);
+      const convertedUsers = users.map((user) => ({
+        ...user,
+        role: convertEnum(UserRole, user.role),
+      }));
+      return { users: convertedUsers, meta };
+    } catch (error) {
+      this.logger.error(`Error fetching all users: ${error instanceof Error ? error.message : error}`);
+      throw AppError.internalServerError('Failed to fetch all users');
     }
   }
 

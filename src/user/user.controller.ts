@@ -3,6 +3,7 @@ import { GrpcMethod } from '@nestjs/microservices';
 
 import {
   type BanUserRequest,
+  type PaginationMeta,
   type PasswordRequest,
   type UpdateUserRequest,
   USER_SERVICE_NAME,
@@ -19,6 +20,12 @@ export class UserController {
   async getUserById({ id }: { id: string }) {
     this.logger.log(`Received GetUserById request for id: ${id}`);
     return this.userService.getUserById(id);
+  }
+
+  @GrpcMethod(USER_SERVICE_NAME, 'GetAllUsers')
+  async getAllUsers(data: PaginationMeta) {
+    this.logger.log('Received GetAllUsers request');
+    return this.userService.getAllUsers(data);
   }
 
   @GrpcMethod(USER_SERVICE_NAME, 'UpdateUser')
