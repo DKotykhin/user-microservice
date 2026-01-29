@@ -28,7 +28,7 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.init();
+  await app.listen(9101);
   logger.log('User microservice is running on ' + url);
 }
 void bootstrap();

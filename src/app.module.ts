@@ -12,6 +12,7 @@ import { HashModule } from './hash/hash.module';
 import { RedisModule } from './redis/redis.module';
 import { TokenModule } from './token/token.module';
 import { MessageBrokerModule } from './transport/message-broker/message-broker.module';
+import { MetricsModule } from './supervision/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MessageBrokerModule } from './transport/message-broker/message-broker.m
     RedisModule,
     TokenModule,
     MessageBrokerModule,
+    MetricsModule,
   ],
   controllers: [],
   providers: [],

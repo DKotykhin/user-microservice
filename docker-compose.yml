@@ -27,6 +27,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - 5002:5002
+      - 9101:9101
+    expose:
+      - '9101'
     env_file:
       - ./.env.docker
     depends_on:
