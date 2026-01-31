@@ -13,8 +13,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const logger = new Logger('Main');
+
   const configService = app.get(ConfigService);
   const url = configService.getOrThrow<string>('TRANSPORT_URL');
+  const PORT = configService.getOrThrow<number>('HTTP_PORT');
 
   app.useGlobalFilters(new GrpcExceptionFilter());
 
@@ -28,7 +30,7 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(9101);
+  await app.listen(PORT);
   logger.log('User microservice is running on ' + url);
 }
 void bootstrap();

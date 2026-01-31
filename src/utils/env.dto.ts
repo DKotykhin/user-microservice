@@ -5,6 +5,11 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   readonly TRANSPORT_URL: string;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  readonly HTTP_PORT: number;
+
   @IsUrl(
     { protocols: ['postgres', 'postgresql'], require_tld: false, require_protocol: true },
     { message: 'DATABASE_URL must be a valid Postgres URL' },
