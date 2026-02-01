@@ -4,36 +4,39 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { status as GrpcStatus } from '@grpc/grpc-js';
 import { Counter, Histogram } from 'prom-client';
 import { Observable, tap } from 'rxjs';
+import {
+  GRPC_SERVER_HANDLED_TOTAL,
+  GRPC_SERVER_HANDLING_SECONDS,
+  GRPC_SERVER_MSG_RECEIVED_TOTAL,
+  GRPC_SERVER_MSG_SENT_TOTAL,
+  GRPC_SERVER_STARTED_TOTAL,
+} from '../providers';
 
 type GrpcType = 'unary' | 'client_stream' | 'server_stream' | 'bidi_stream';
 
 @Injectable()
 export class GrpcMetricsInterceptor implements NestInterceptor {
   public constructor(
-    @InjectMetric('grpc_server_started_total')
+    @InjectMetric(GRPC_SERVER_STARTED_TOTAL)
     private readonly grpcServerStartedTotal: Counter<string>,
-    @InjectMetric('grpc_server_handled_total')
+    @InjectMetric(GRPC_SERVER_HANDLED_TOTAL)
     private readonly grpcServerHandledTotal: Counter<string>,
-    @InjectMetric('grpc_server_handling_seconds')
+    @InjectMetric(GRPC_SERVER_HANDLING_SECONDS)
     private readonly grpcServerHandlingSeconds: Histogram<string>,
-    @InjectMetric('grpc_server_msg_received_total')
+    @InjectMetric(GRPC_SERVER_MSG_RECEIVED_TOTAL)
     private readonly grpcServerMsgReceivedTotal: Counter<string>,
-    @InjectMetric('grpc_server_msg_sent_total')
+    @InjectMetric(GRPC_SERVER_MSG_SENT_TOTAL)
     private readonly grpcServerMsgSentTotal: Counter<string>,
   ) {}
 
   public intercept(context: ExecutionContext, next: CallHandler<any>): Observable<any> {
-    // Skip metrics endpoint to avoid inflating counts from Prometheus scrapes
-    if (context.getType() === 'http') {
-      const request = context.switchToHttp().getRequest<{ url: string }>();
-      if (request.url === '/metrics') {
-        return next.handle();
-      }
+    if (context.getType() !== 'rpc') {
+      return next.handle();
     }
 
     const grpcService = context.getClass().name;
     const grpcMethod = context.getHandler().name;
-    const grpcType: GrpcType = 'unary'; // Default to unary, can be extended for streaming
+    const grpcType: GrpcType = 'unary';
 
     const labels = {
       grpc_service: grpcService,
@@ -41,38 +44,27 @@ export class GrpcMetricsInterceptor implements NestInterceptor {
       grpc_type: grpcType,
     };
 
-    // Increment started counter
     this.grpcServerStartedTotal.inc(labels);
-
-    // Increment message received (for unary, 1 message is received per call)
     this.grpcServerMsgReceivedTotal.inc(labels);
 
-    // Start timing
     const end = this.grpcServerHandlingSeconds.startTimer(labels);
 
     return next.handle().pipe(
       tap({
         next: () => {
-          // Increment message sent (for unary, 1 message is sent per call)
           this.grpcServerMsgSentTotal.inc(labels);
-
-          // Increment handled counter with OK status
           this.grpcServerHandledTotal.inc({
             ...labels,
             grpc_code: GrpcStatus[GrpcStatus.OK],
           });
-
           end();
         },
         error: (error: unknown) => {
           const grpcCode = this.extractGrpcStatusCode(error);
-
-          // Increment handled counter with error status
           this.grpcServerHandledTotal.inc({
             ...labels,
             grpc_code: GrpcStatus[grpcCode],
           });
-
           end();
         },
       }),

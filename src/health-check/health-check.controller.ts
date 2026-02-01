@@ -1,7 +1,7 @@
 import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 
-import { GrpcMetricsInterceptor } from 'src/supervision/metrics/grpc-metrics.interceptor';
+import { GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
 import { HEALTH_CHECK_SERVICE_NAME, type HealthCheckResponse } from 'src/generated-types/health-check';
 import { HealthCheckService } from './health-check.service';
 

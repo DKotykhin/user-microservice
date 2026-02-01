@@ -1,7 +1,7 @@
 import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 
-import { GrpcMetricsInterceptor } from 'src/supervision/metrics/grpc-metrics.interceptor';
+import { BusinessMetricsInterceptor, GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
 import { AuthService } from './auth.service';
 import {
   AUTH_SERVICE_NAME,
@@ -14,7 +14,7 @@ import {
 import type { StatusResponse, User } from 'src/generated-types/user';
 
 @Controller('auth')
-@UseInterceptors(GrpcMetricsInterceptor)
+@UseInterceptors(GrpcMetricsInterceptor, BusinessMetricsInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
   protected readonly logger = new Logger(AuthController.name);
