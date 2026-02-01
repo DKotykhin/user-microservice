@@ -1,10 +1,12 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 
+import { GrpcMetricsInterceptor } from 'src/supervision/metrics/grpc-metrics.interceptor';
 import { HEALTH_CHECK_SERVICE_NAME, type HealthCheckResponse } from 'src/generated-types/health-check';
 import { HealthCheckService } from './health-check.service';
 
 @Controller()
+@UseInterceptors(GrpcMetricsInterceptor)
 export class HealthCheckController {
   protected readonly logger = new Logger(HealthCheckController.name);
   constructor(private readonly healthCheckService: HealthCheckService) {}

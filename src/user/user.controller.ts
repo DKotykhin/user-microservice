@@ -1,6 +1,7 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 
+import { GrpcMetricsInterceptor } from 'src/supervision/metrics/grpc-metrics.interceptor';
 import {
   type BanUserRequest,
   type PaginationMeta,
@@ -12,6 +13,7 @@ import {
 import { UserService } from './user.service';
 
 @Controller('user')
+@UseInterceptors(GrpcMetricsInterceptor)
 export class UserController {
   constructor(private readonly userService: UserService) {}
   protected readonly logger = new Logger(UserController.name);
