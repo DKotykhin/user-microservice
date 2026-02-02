@@ -1,269 +1,243 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="165" failures="0" errors="0" time="5.893">
-  <testsuite name="RedisService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="4.174" tests="6">
-    <testcase classname="RedisService should be defined" name="RedisService should be defined" time="0.012">
+<testsuites name="jest tests" tests="165" failures="0" errors="0" time="4.991">
+  <testsuite name="AuthRepository" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="3.809" tests="13">
+    <testcase classname="AuthRepository should be defined" name="AuthRepository should be defined" time="0.017">
+    </testcase>
+    <testcase classname="AuthRepository findEmailVerificationTokenByToken should find email verification token by token string and include user" name="AuthRepository findEmailVerificationTokenByToken should find email verification token by token string and include user" time="0.004">
+    </testcase>
+    <testcase classname="AuthRepository findEmailVerificationTokenByToken should return null if token not found" name="AuthRepository findEmailVerificationTokenByToken should return null if token not found" time="0.004">
+    </testcase>
+    <testcase classname="AuthRepository findEmailVerificationTokenByUserId should find email verification token by user ID" name="AuthRepository findEmailVerificationTokenByUserId should find email verification token by user ID" time="0.002">
+    </testcase>
+    <testcase classname="AuthRepository findEmailVerificationTokenByUserId should return null if user has no verification token" name="AuthRepository findEmailVerificationTokenByUserId should return null if user has no verification token" time="0.004">
+    </testcase>
+    <testcase classname="AuthRepository createEmailVerificationToken should create email verification token with correct data" name="AuthRepository createEmailVerificationToken should create email verification token with correct data" time="0.002">
+    </testcase>
+    <testcase classname="AuthRepository updateEmailVerificationToken should update email verification token with new token and expiresAt" name="AuthRepository updateEmailVerificationToken should update email verification token with new token and expiresAt" time="0.003">
+    </testcase>
+    <testcase classname="AuthRepository updateEmailVerificationToken should update email verification token with verifiedAt" name="AuthRepository updateEmailVerificationToken should update email verification token with verifiedAt" time="0.001">
+    </testcase>
+    <testcase classname="AuthRepository createPasswordResetToken should create password reset token with correct data" name="AuthRepository createPasswordResetToken should create password reset token with correct data" time="0.001">
+    </testcase>
+    <testcase classname="AuthRepository findPasswordResetTokenByToken should find password reset token by token string" name="AuthRepository findPasswordResetTokenByToken should find password reset token by token string" time="0.009">
+    </testcase>
+    <testcase classname="AuthRepository findPasswordResetTokenByToken should return null if token not found" name="AuthRepository findPasswordResetTokenByToken should return null if token not found" time="0.003">
+    </testcase>
+    <testcase classname="AuthRepository updatePasswordResetTokenById should update password reset token with new token and expiresAt" name="AuthRepository updatePasswordResetTokenById should update password reset token with new token and expiresAt" time="0.004">
+    </testcase>
+    <testcase classname="AuthRepository updatePasswordResetTokenById should update password reset token with changedAt to invalidate token" name="AuthRepository updatePasswordResetTokenById should update password reset token with changedAt to invalidate token" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="RedisService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="3.808" tests="6">
+    <testcase classname="RedisService should be defined" name="RedisService should be defined" time="0.003">
     </testcase>
     <testcase classname="RedisService should call configService.getOrThrow with REDIS_HOST and REDIS_PORT" name="RedisService should call configService.getOrThrow with REDIS_HOST and REDIS_PORT" time="0.001">
     </testcase>
-    <testcase classname="RedisService should be an instance of RedisService" name="RedisService should be an instance of RedisService" time="0">
+    <testcase classname="RedisService should be an instance of RedisService" name="RedisService should be an instance of RedisService" time="0.001">
     </testcase>
-    <testcase classname="RedisService onModuleInit should register connect and error event handlers" name="RedisService onModuleInit should register connect and error event handlers" time="0.008">
+    <testcase classname="RedisService onModuleInit should register connect and error event handlers" name="RedisService onModuleInit should register connect and error event handlers" time="0.003">
     </testcase>
     <testcase classname="RedisService onModuleInit should call ping" name="RedisService onModuleInit should call ping" time="0">
     </testcase>
     <testcase classname="RedisService onModuleDestroy should call quit" name="RedisService onModuleDestroy should call quit" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="UserRepository" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="4.914" tests="12">
-    <testcase classname="UserRepository should be defined" name="UserRepository should be defined" time="0.012">
-    </testcase>
-    <testcase classname="UserRepository findUserByEmail should call prisma.user.findUnique with email" name="UserRepository findUserByEmail should call prisma.user.findUnique with email" time="0.039">
-    </testcase>
-    <testcase classname="UserRepository findUserById should call prisma.user.findUnique with id" name="UserRepository findUserById should call prisma.user.findUnique with id" time="0.01">
-    </testcase>
-    <testcase classname="UserRepository getAllUsers should fetch all users with pagination" name="UserRepository getAllUsers should fetch all users with pagination" time="0.001">
-    </testcase>
-    <testcase classname="UserRepository getAllUsers should handle multiple pages correctly" name="UserRepository getAllUsers should handle multiple pages correctly" time="0">
-    </testcase>
-    <testcase classname="UserRepository getAllUsers should calculate correct skip for page 2" name="UserRepository getAllUsers should calculate correct skip for page 2" time="0.001">
-    </testcase>
-    <testcase classname="UserRepository createUser should create a user with correct data" name="UserRepository createUser should create a user with correct data" time="0.001">
-    </testcase>
-    <testcase classname="UserRepository updateUser should update user" name="UserRepository updateUser should update user" time="0.001">
-    </testcase>
-    <testcase classname="UserRepository deleteUser should delete user by id" name="UserRepository deleteUser should delete user by id" time="0.004">
-    </testcase>
-    <testcase classname="UserRepository getBannedUsers should fetch banned users" name="UserRepository getBannedUsers should fetch banned users" time="0.005">
-    </testcase>
-    <testcase classname="UserRepository getBanDetailsByUserId should fetch ban details by user id" name="UserRepository getBanDetailsByUserId should fetch ban details by user id" time="0.004">
-    </testcase>
-    <testcase classname="UserRepository createBanDetails should create ban details" name="UserRepository createBanDetails should create ban details" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="AuthRepository" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="4.864" tests="13">
-    <testcase classname="AuthRepository should be defined" name="AuthRepository should be defined" time="0.02">
-    </testcase>
-    <testcase classname="AuthRepository findEmailVerificationTokenByToken should find email verification token by token string and include user" name="AuthRepository findEmailVerificationTokenByToken should find email verification token by token string and include user" time="0.006">
-    </testcase>
-    <testcase classname="AuthRepository findEmailVerificationTokenByToken should return null if token not found" name="AuthRepository findEmailVerificationTokenByToken should return null if token not found" time="0.001">
-    </testcase>
-    <testcase classname="AuthRepository findEmailVerificationTokenByUserId should find email verification token by user ID" name="AuthRepository findEmailVerificationTokenByUserId should find email verification token by user ID" time="0.001">
-    </testcase>
-    <testcase classname="AuthRepository findEmailVerificationTokenByUserId should return null if user has no verification token" name="AuthRepository findEmailVerificationTokenByUserId should return null if user has no verification token" time="0.005">
-    </testcase>
-    <testcase classname="AuthRepository createEmailVerificationToken should create email verification token with correct data" name="AuthRepository createEmailVerificationToken should create email verification token with correct data" time="0.009">
-    </testcase>
-    <testcase classname="AuthRepository updateEmailVerificationToken should update email verification token with new token and expiresAt" name="AuthRepository updateEmailVerificationToken should update email verification token with new token and expiresAt" time="0.001">
-    </testcase>
-    <testcase classname="AuthRepository updateEmailVerificationToken should update email verification token with verifiedAt" name="AuthRepository updateEmailVerificationToken should update email verification token with verifiedAt" time="0.002">
-    </testcase>
-    <testcase classname="AuthRepository createPasswordResetToken should create password reset token with correct data" name="AuthRepository createPasswordResetToken should create password reset token with correct data" time="0.013">
-    </testcase>
-    <testcase classname="AuthRepository findPasswordResetTokenByToken should find password reset token by token string" name="AuthRepository findPasswordResetTokenByToken should find password reset token by token string" time="0.002">
-    </testcase>
-    <testcase classname="AuthRepository findPasswordResetTokenByToken should return null if token not found" name="AuthRepository findPasswordResetTokenByToken should return null if token not found" time="0.001">
-    </testcase>
-    <testcase classname="AuthRepository updatePasswordResetTokenById should update password reset token with new token and expiresAt" name="AuthRepository updatePasswordResetTokenById should update password reset token with new token and expiresAt" time="0.002">
-    </testcase>
-    <testcase classname="AuthRepository updatePasswordResetTokenById should update password reset token with changedAt to invalidate token" name="AuthRepository updatePasswordResetTokenById should update password reset token with changedAt to invalidate token" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="TokenService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:21" time="0.805" tests="5">
-    <testcase classname="TokenService should be defined" name="TokenService should be defined" time="0.004">
-    </testcase>
-    <testcase classname="TokenService refreshKey should build correct redis key" name="TokenService refreshKey should build correct redis key" time="0.001">
-    </testcase>
-    <testcase classname="TokenService verifyJwtToken should verify access token with access secret" name="TokenService verifyJwtToken should verify access token with access secret" time="0.001">
-    </testcase>
-    <testcase classname="TokenService verifyJwtToken should verify refresh token with refresh secret" name="TokenService verifyJwtToken should verify refresh token with refresh secret" time="0">
-    </testcase>
-    <testcase classname="TokenService generateJwtTokens should generate tokens, hash refresh token and store it in redis" name="TokenService generateJwtTokens should generate tokens, hash refresh token and store it in redis" time="0.002">
-    </testcase>
-  </testsuite>
-  <testsuite name="HashService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:22" time="0.165" tests="8">
-    <testcase classname="HashService should be defined" name="HashService should be defined" time="0.002">
-    </testcase>
-    <testcase classname="HashService create should create password hash" name="HashService create should create password hash" time="0">
-    </testcase>
-    <testcase classname="HashService create should throw error if hash creation fails" name="HashService create should throw error if hash creation fails" time="0.001">
-    </testcase>
-    <testcase classname="HashService compare should return true when passwords match" name="HashService compare should return true when passwords match" time="0.001">
-    </testcase>
-    <testcase classname="HashService compare should return false when passwords do not match" name="HashService compare should return false when passwords do not match" time="0.002">
-    </testcase>
-    <testcase classname="HashService same should throw error if passwords are the same" name="HashService same should throw error if passwords are the same" time="0.002">
-    </testcase>
-    <testcase classname="HashService same should return false if passwords are different" name="HashService same should return false if passwords are different" time="0.001">
-    </testcase>
-    <testcase classname="HashService validate should validate token against hash" name="HashService validate should validate token against hash" time="0">
-    </testcase>
-  </testsuite>
-  <testsuite name="UserController" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="5.194" tests="12">
-    <testcase classname="UserController should be defined" name="UserController should be defined" time="0.022">
-    </testcase>
-    <testcase classname="UserController getUserById should call userService.getUserById" name="UserController getUserById should call userService.getUserById" time="0.013">
-    </testcase>
-    <testcase classname="UserController getAllUsers should call userService.getAllUsers" name="UserController getAllUsers should call userService.getAllUsers" time="0.007">
-    </testcase>
-    <testcase classname="UserController updateUser should call userService.updateUser" name="UserController updateUser should call userService.updateUser" time="0.013">
-    </testcase>
-    <testcase classname="UserController deleteUser should call userService.deleteUser" name="UserController deleteUser should call userService.deleteUser" time="0.007">
-    </testcase>
-    <testcase classname="UserController confirmPassword should call userService.confirmPassword" name="UserController confirmPassword should call userService.confirmPassword" time="0.002">
-    </testcase>
-    <testcase classname="UserController changePassword should call userService.changePassword" name="UserController changePassword should call userService.changePassword" time="0.002">
-    </testcase>
-    <testcase classname="UserController banUser should call userService.banUser" name="UserController banUser should call userService.banUser" time="0.001">
-    </testcase>
-    <testcase classname="UserController unbanUser should call userService.unbanUser" name="UserController unbanUser should call userService.unbanUser" time="0.001">
-    </testcase>
-    <testcase classname="UserController getBannedUsers should call userService.getBannedUsers" name="UserController getBannedUsers should call userService.getBannedUsers" time="0.048">
-    </testcase>
-    <testcase classname="UserController getBanDetailsByUserId should call userService.getBanDetailsByUserId" name="UserController getBanDetailsByUserId should call userService.getBanDetailsByUserId" time="0.001">
-    </testcase>
-    <testcase classname="UserController changeUserRole should call userService.changeUserRole" name="UserController changeUserRole should call userService.changeUserRole" time="0.004">
-    </testcase>
-  </testsuite>
-  <testsuite name="UserService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="5.239" tests="35">
-    <testcase classname="UserService should be defined" name="UserService should be defined" time="0.048">
-    </testcase>
-    <testcase classname="UserService getUserById should return user when found" name="UserService getUserById should return user when found" time="0.003">
-    </testcase>
-    <testcase classname="UserService getUserById should throw not found if user does not exist" name="UserService getUserById should throw not found if user does not exist" time="0.002">
-    </testcase>
-    <testcase classname="UserService getUserById should throw internal server error on repository failure" name="UserService getUserById should throw internal server error on repository failure" time="0.001">
-    </testcase>
-    <testcase classname="UserService getAllUsers should return all users with pagination meta" name="UserService getAllUsers should return all users with pagination meta" time="0.001">
-    </testcase>
-    <testcase classname="UserService getAllUsers should convert user roles correctly" name="UserService getAllUsers should convert user roles correctly" time="0">
-    </testcase>
-    <testcase classname="UserService getAllUsers should throw internal server error on repository failure" name="UserService getAllUsers should throw internal server error on repository failure" time="0">
-    </testcase>
-    <testcase classname="UserService updateUser should update and return user" name="UserService updateUser should update and return user" time="0.006">
-    </testcase>
-    <testcase classname="UserService updateUser should throw not found if user does not exist" name="UserService updateUser should throw not found if user does not exist" time="0.003">
-    </testcase>
-    <testcase classname="UserService updateUser should throw internal server error on repository failure" name="UserService updateUser should throw internal server error on repository failure" time="0.001">
-    </testcase>
-    <testcase classname="UserService deleteUser should delete user" name="UserService deleteUser should delete user" time="0.007">
-    </testcase>
-    <testcase classname="UserService deleteUser should throw not found if user does not exist" name="UserService deleteUser should throw not found if user does not exist" time="0.001">
-    </testcase>
-    <testcase classname="UserService deleteUser should throw internal server error on repository failure" name="UserService deleteUser should throw internal server error on repository failure" time="0.003">
-    </testcase>
-    <testcase classname="UserService deleteUser should rethrow AppError from repository" name="UserService deleteUser should rethrow AppError from repository" time="0.018">
-    </testcase>
-    <testcase classname="UserService confirmPassword should confirm password" name="UserService confirmPassword should confirm password" time="0.016">
-    </testcase>
-    <testcase classname="UserService confirmPassword should throw if password is invalid" name="UserService confirmPassword should throw if password is invalid" time="0.001">
-    </testcase>
-    <testcase classname="UserService confirmPassword should throw not found if user does not exist" name="UserService confirmPassword should throw not found if user does not exist" time="0.003">
-    </testcase>
-    <testcase classname="UserService confirmPassword should throw internal server error on repository failure" name="UserService confirmPassword should throw internal server error on repository failure" time="0.001">
-    </testcase>
-    <testcase classname="UserService changePassword should change password" name="UserService changePassword should change password" time="0.002">
-    </testcase>
-    <testcase classname="UserService changePassword should throw if new password is same as old password" name="UserService changePassword should throw if new password is same as old password" time="0.022">
-    </testcase>
-    <testcase classname="UserService changePassword should throw not found if user does not exist" name="UserService changePassword should throw not found if user does not exist" time="0">
-    </testcase>
-    <testcase classname="UserService changePassword should throw internal server error on repository failure" name="UserService changePassword should throw internal server error on repository failure" time="0.019">
-    </testcase>
-    <testcase classname="UserService banUser should ban user" name="UserService banUser should ban user" time="0.001">
-    </testcase>
-    <testcase classname="UserService banUser should throw not found if user does not exist" name="UserService banUser should throw not found if user does not exist" time="0.002">
-    </testcase>
-    <testcase classname="UserService banUser should throw if user is already banned" name="UserService banUser should throw if user is already banned" time="0.005">
-    </testcase>
-    <testcase classname="UserService banUser should throw internal server error on repository failure" name="UserService banUser should throw internal server error on repository failure" time="0.007">
-    </testcase>
-    <testcase classname="UserService unbanUser should unban user" name="UserService unbanUser should unban user" time="0.002">
-    </testcase>
-    <testcase classname="UserService unbanUser should throw not found if user does not exist" name="UserService unbanUser should throw not found if user does not exist" time="0.005">
-    </testcase>
-    <testcase classname="UserService unbanUser should throw if user is not banned" name="UserService unbanUser should throw if user is not banned" time="0.002">
-    </testcase>
-    <testcase classname="UserService unbanUser should throw internal server error on repository failure" name="UserService unbanUser should throw internal server error on repository failure" time="0.001">
-    </testcase>
-    <testcase classname="UserService getBannedUsers should return banned users" name="UserService getBannedUsers should return banned users" time="0.002">
-    </testcase>
-    <testcase classname="UserService getBanDetailsByUserId should return ban details" name="UserService getBanDetailsByUserId should return ban details" time="0.002">
-    </testcase>
-    <testcase classname="UserService changeUserRole should change user role" name="UserService changeUserRole should change user role" time="0">
-    </testcase>
-    <testcase classname="UserService changeUserRole should throw not found if user does not exist" name="UserService changeUserRole should throw not found if user does not exist" time="0.001">
-    </testcase>
-    <testcase classname="UserService changeUserRole should throw internal server error on repository failure" name="UserService changeUserRole should throw internal server error on repository failure" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="HealthCheckService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:22" time="0.298" tests="3">
-    <testcase classname="HealthCheckService should be defined" name="HealthCheckService should be defined" time="0.045">
-    </testcase>
-    <testcase classname="HealthCheckService checkDatabaseConnection should return true when database is reachable" name="HealthCheckService checkDatabaseConnection should return true when database is reachable" time="0.021">
-    </testcase>
-    <testcase classname="HealthCheckService checkDatabaseConnection should return false when database throws error" name="HealthCheckService checkDatabaseConnection should return false when database throws error" time="0.005">
-    </testcase>
-  </testsuite>
-  <testsuite name="HealthCheckController" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:22" time="0.31" tests="4">
+  <testsuite name="HealthCheckController" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:43" time="0.349" tests="4">
     <testcase classname="HealthCheckController should be defined" name="HealthCheckController should be defined" time="0.004">
     </testcase>
     <testcase classname="HealthCheckController checkHealth should return healthy app response" name="HealthCheckController checkHealth should return healthy app response" time="0.001">
     </testcase>
-    <testcase classname="HealthCheckController checkDatabaseConnection should return healthy response when DB is healthy" name="HealthCheckController checkDatabaseConnection should return healthy response when DB is healthy" time="0.001">
+    <testcase classname="HealthCheckController checkDatabaseConnection should return healthy response when DB is healthy" name="HealthCheckController checkDatabaseConnection should return healthy response when DB is healthy" time="0.002">
     </testcase>
     <testcase classname="HealthCheckController checkDatabaseConnection should return unhealthy response when DB is down" name="HealthCheckController checkDatabaseConnection should return unhealthy response when DB is down" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="AuthController" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="5.235" tests="17">
-    <testcase classname="AuthController should be defined" name="AuthController should be defined" time="0.016">
+  <testsuite name="UserController" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="4.222" tests="12">
+    <testcase classname="UserController should be defined" name="UserController should be defined" time="0.009">
     </testcase>
-    <testcase classname="AuthController signUp should call authService.signUp and return user" name="AuthController signUp should call authService.signUp and return user" time="0.004">
+    <testcase classname="UserController getUserById should call userService.getUserById" name="UserController getUserById should call userService.getUserById" time="0.002">
     </testcase>
-    <testcase classname="AuthController signUp should propagate errors from authService.signUp" name="AuthController signUp should propagate errors from authService.signUp" time="0.012">
+    <testcase classname="UserController getAllUsers should call userService.getAllUsers" name="UserController getAllUsers should call userService.getAllUsers" time="0.001">
     </testcase>
-    <testcase classname="AuthController resendConfirmationEmail should call authService.resendConfirmationEmail and return status response" name="AuthController resendConfirmationEmail should call authService.resendConfirmationEmail and return status response" time="0.003">
+    <testcase classname="UserController updateUser should call userService.updateUser" name="UserController updateUser should call userService.updateUser" time="0.002">
     </testcase>
-    <testcase classname="AuthController resendConfirmationEmail should propagate errors from authService.resendConfirmationEmail" name="AuthController resendConfirmationEmail should propagate errors from authService.resendConfirmationEmail" time="0.001">
+    <testcase classname="UserController deleteUser should call userService.deleteUser" name="UserController deleteUser should call userService.deleteUser" time="0.001">
     </testcase>
-    <testcase classname="AuthController verifyEmail should call authService.verifyEmail and return auth response" name="AuthController verifyEmail should call authService.verifyEmail and return auth response" time="0.001">
+    <testcase classname="UserController confirmPassword should call userService.confirmPassword" name="UserController confirmPassword should call userService.confirmPassword" time="0.001">
     </testcase>
-    <testcase classname="AuthController verifyEmail should propagate errors from authService.verifyEmail" name="AuthController verifyEmail should propagate errors from authService.verifyEmail" time="0.001">
+    <testcase classname="UserController changePassword should call userService.changePassword" name="UserController changePassword should call userService.changePassword" time="0.001">
     </testcase>
-    <testcase classname="AuthController signIn should call authService.signIn and return auth response" name="AuthController signIn should call authService.signIn and return auth response" time="0.001">
+    <testcase classname="UserController banUser should call userService.banUser" name="UserController banUser should call userService.banUser" time="0.004">
     </testcase>
-    <testcase classname="AuthController signIn should propagate errors from authService.signIn" name="AuthController signIn should propagate errors from authService.signIn" time="0.015">
+    <testcase classname="UserController unbanUser should call userService.unbanUser" name="UserController unbanUser should call userService.unbanUser" time="0.002">
     </testcase>
-    <testcase classname="AuthController refreshToken should call authService.refreshTokens and return refresh tokens response" name="AuthController refreshToken should call authService.refreshTokens and return refresh tokens response" time="0.002">
+    <testcase classname="UserController getBannedUsers should call userService.getBannedUsers" name="UserController getBannedUsers should call userService.getBannedUsers" time="0.002">
     </testcase>
-    <testcase classname="AuthController refreshToken should propagate errors from authService.refreshTokens" name="AuthController refreshToken should propagate errors from authService.refreshTokens" time="0.002">
+    <testcase classname="UserController getBanDetailsByUserId should call userService.getBanDetailsByUserId" name="UserController getBanDetailsByUserId should call userService.getBanDetailsByUserId" time="0.046">
     </testcase>
-    <testcase classname="AuthController initResetPassword should call authService.initResetPassword and return status response" name="AuthController initResetPassword should call authService.initResetPassword and return status response" time="0.001">
-    </testcase>
-    <testcase classname="AuthController initResetPassword should propagate errors from authService.initResetPassword" name="AuthController initResetPassword should propagate errors from authService.initResetPassword" time="0">
-    </testcase>
-    <testcase classname="AuthController resendResetPasswordEmail should call authService.resendResetPasswordEmail and return status response" name="AuthController resendResetPasswordEmail should call authService.resendResetPasswordEmail and return status response" time="0.001">
-    </testcase>
-    <testcase classname="AuthController resendResetPasswordEmail should propagate errors from authService.resendResetPasswordEmail" name="AuthController resendResetPasswordEmail should propagate errors from authService.resendResetPasswordEmail" time="0.002">
-    </testcase>
-    <testcase classname="AuthController setNewPassword should call authService.setNewPassword and return status response" name="AuthController setNewPassword should call authService.setNewPassword and return status response" time="0.001">
-    </testcase>
-    <testcase classname="AuthController setNewPassword should propagate errors from authService.setNewPassword" name="AuthController setNewPassword should propagate errors from authService.setNewPassword" time="0.001">
+    <testcase classname="UserController changeUserRole should call userService.changeUserRole" name="UserController changeUserRole should call userService.changeUserRole" time="0.003">
     </testcase>
   </testsuite>
-  <testsuite name="AuthService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:17" time="5.271" tests="46">
-    <testcase classname="AuthService should be defined" name="AuthService should be defined" time="0.016">
+  <testsuite name="UserRepository" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="4.279" tests="12">
+    <testcase classname="UserRepository should be defined" name="UserRepository should be defined" time="0.015">
     </testcase>
-    <testcase classname="AuthService signUp should create a new user and send verification email" name="AuthService signUp should create a new user and send verification email" time="0.022">
+    <testcase classname="UserRepository findUserByEmail should call prisma.user.findUnique with email" name="UserRepository findUserByEmail should call prisma.user.findUnique with email" time="0.004">
+    </testcase>
+    <testcase classname="UserRepository findUserById should call prisma.user.findUnique with id" name="UserRepository findUserById should call prisma.user.findUnique with id" time="0.003">
+    </testcase>
+    <testcase classname="UserRepository getAllUsers should fetch all users with pagination" name="UserRepository getAllUsers should fetch all users with pagination" time="0.004">
+    </testcase>
+    <testcase classname="UserRepository getAllUsers should handle multiple pages correctly" name="UserRepository getAllUsers should handle multiple pages correctly" time="0.002">
+    </testcase>
+    <testcase classname="UserRepository getAllUsers should calculate correct skip for page 2" name="UserRepository getAllUsers should calculate correct skip for page 2" time="0.003">
+    </testcase>
+    <testcase classname="UserRepository createUser should create a user with correct data" name="UserRepository createUser should create a user with correct data" time="0">
+    </testcase>
+    <testcase classname="UserRepository updateUser should update user" name="UserRepository updateUser should update user" time="0.001">
+    </testcase>
+    <testcase classname="UserRepository deleteUser should delete user by id" name="UserRepository deleteUser should delete user by id" time="0.001">
+    </testcase>
+    <testcase classname="UserRepository getBannedUsers should fetch banned users" name="UserRepository getBannedUsers should fetch banned users" time="0">
+    </testcase>
+    <testcase classname="UserRepository getBanDetailsByUserId should fetch ban details by user id" name="UserRepository getBanDetailsByUserId should fetch ban details by user id" time="0.001">
+    </testcase>
+    <testcase classname="UserRepository createBanDetails should create ban details" name="UserRepository createBanDetails should create ban details" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="TokenService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:43" time="0.523" tests="5">
+    <testcase classname="TokenService should be defined" name="TokenService should be defined" time="0.014">
+    </testcase>
+    <testcase classname="TokenService refreshKey should build correct redis key" name="TokenService refreshKey should build correct redis key" time="0.002">
+    </testcase>
+    <testcase classname="TokenService verifyJwtToken should verify access token with access secret" name="TokenService verifyJwtToken should verify access token with access secret" time="0.002">
+    </testcase>
+    <testcase classname="TokenService verifyJwtToken should verify refresh token with refresh secret" name="TokenService verifyJwtToken should verify refresh token with refresh secret" time="0.001">
+    </testcase>
+    <testcase classname="TokenService generateJwtTokens should generate tokens, hash refresh token and store it in redis" name="TokenService generateJwtTokens should generate tokens, hash refresh token and store it in redis" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="PrismaService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:43" time="0.112" tests="4">
+    <testcase classname="PrismaService should be defined" name="PrismaService should be defined" time="0.001">
+    </testcase>
+    <testcase classname="PrismaService should call configService.getOrThrow with DATABASE_URL" name="PrismaService should call configService.getOrThrow with DATABASE_URL" time="0">
+    </testcase>
+    <testcase classname="PrismaService should throw error if DATABASE_URL is empty string" name="PrismaService should throw error if DATABASE_URL is empty string" time="0.012">
+    </testcase>
+    <testcase classname="PrismaService should be an instance of PrismaService" name="PrismaService should be an instance of PrismaService" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="HashService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:43" time="0.224" tests="8">
+    <testcase classname="HashService should be defined" name="HashService should be defined" time="0.013">
+    </testcase>
+    <testcase classname="HashService create should create password hash" name="HashService create should create password hash" time="0.002">
+    </testcase>
+    <testcase classname="HashService create should throw error if hash creation fails" name="HashService create should throw error if hash creation fails" time="0.017">
+    </testcase>
+    <testcase classname="HashService compare should return true when passwords match" name="HashService compare should return true when passwords match" time="0.035">
+    </testcase>
+    <testcase classname="HashService compare should return false when passwords do not match" name="HashService compare should return false when passwords do not match" time="0.004">
+    </testcase>
+    <testcase classname="HashService same should throw error if passwords are the same" name="HashService same should throw error if passwords are the same" time="0.002">
+    </testcase>
+    <testcase classname="HashService same should return false if passwords are different" name="HashService same should return false if passwords are different" time="0.003">
+    </testcase>
+    <testcase classname="HashService validate should validate token against hash" name="HashService validate should validate token against hash" time="0.004">
+    </testcase>
+  </testsuite>
+  <testsuite name="HealthCheckService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:43" time="0.177" tests="3">
+    <testcase classname="HealthCheckService should be defined" name="HealthCheckService should be defined" time="0.002">
+    </testcase>
+    <testcase classname="HealthCheckService checkDatabaseConnection should return true when database is reachable" name="HealthCheckService checkDatabaseConnection should return true when database is reachable" time="0.001">
+    </testcase>
+    <testcase classname="HealthCheckService checkDatabaseConnection should return false when database throws error" name="HealthCheckService checkDatabaseConnection should return false when database throws error" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="UserService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="4.478" tests="35">
+    <testcase classname="UserService should be defined" name="UserService should be defined" time="0.016">
+    </testcase>
+    <testcase classname="UserService getUserById should return user when found" name="UserService getUserById should return user when found" time="0.002">
+    </testcase>
+    <testcase classname="UserService getUserById should throw not found if user does not exist" name="UserService getUserById should throw not found if user does not exist" time="0.003">
+    </testcase>
+    <testcase classname="UserService getUserById should throw internal server error on repository failure" name="UserService getUserById should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService getAllUsers should return all users with pagination meta" name="UserService getAllUsers should return all users with pagination meta" time="0.003">
+    </testcase>
+    <testcase classname="UserService getAllUsers should convert user roles correctly" name="UserService getAllUsers should convert user roles correctly" time="0.002">
+    </testcase>
+    <testcase classname="UserService getAllUsers should throw internal server error on repository failure" name="UserService getAllUsers should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService updateUser should update and return user" name="UserService updateUser should update and return user" time="0.001">
+    </testcase>
+    <testcase classname="UserService updateUser should throw not found if user does not exist" name="UserService updateUser should throw not found if user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="UserService updateUser should throw internal server error on repository failure" name="UserService updateUser should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService deleteUser should delete user" name="UserService deleteUser should delete user" time="0.001">
+    </testcase>
+    <testcase classname="UserService deleteUser should throw not found if user does not exist" name="UserService deleteUser should throw not found if user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="UserService deleteUser should throw internal server error on repository failure" name="UserService deleteUser should throw internal server error on repository failure" time="0.006">
+    </testcase>
+    <testcase classname="UserService deleteUser should rethrow AppError from repository" name="UserService deleteUser should rethrow AppError from repository" time="0.018">
+    </testcase>
+    <testcase classname="UserService confirmPassword should confirm password" name="UserService confirmPassword should confirm password" time="0.01">
+    </testcase>
+    <testcase classname="UserService confirmPassword should throw if password is invalid" name="UserService confirmPassword should throw if password is invalid" time="0.004">
+    </testcase>
+    <testcase classname="UserService confirmPassword should throw not found if user does not exist" name="UserService confirmPassword should throw not found if user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="UserService confirmPassword should throw internal server error on repository failure" name="UserService confirmPassword should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService changePassword should change password" name="UserService changePassword should change password" time="0.001">
+    </testcase>
+    <testcase classname="UserService changePassword should throw if new password is same as old password" name="UserService changePassword should throw if new password is same as old password" time="0">
+    </testcase>
+    <testcase classname="UserService changePassword should throw not found if user does not exist" name="UserService changePassword should throw not found if user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="UserService changePassword should throw internal server error on repository failure" name="UserService changePassword should throw internal server error on repository failure" time="0">
+    </testcase>
+    <testcase classname="UserService banUser should ban user" name="UserService banUser should ban user" time="0.001">
+    </testcase>
+    <testcase classname="UserService banUser should throw not found if user does not exist" name="UserService banUser should throw not found if user does not exist" time="0">
+    </testcase>
+    <testcase classname="UserService banUser should throw if user is already banned" name="UserService banUser should throw if user is already banned" time="0.001">
+    </testcase>
+    <testcase classname="UserService banUser should throw internal server error on repository failure" name="UserService banUser should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService unbanUser should unban user" name="UserService unbanUser should unban user" time="0.001">
+    </testcase>
+    <testcase classname="UserService unbanUser should throw not found if user does not exist" name="UserService unbanUser should throw not found if user does not exist" time="0.001">
+    </testcase>
+    <testcase classname="UserService unbanUser should throw if user is not banned" name="UserService unbanUser should throw if user is not banned" time="0">
+    </testcase>
+    <testcase classname="UserService unbanUser should throw internal server error on repository failure" name="UserService unbanUser should throw internal server error on repository failure" time="0.001">
+    </testcase>
+    <testcase classname="UserService getBannedUsers should return banned users" name="UserService getBannedUsers should return banned users" time="0.001">
+    </testcase>
+    <testcase classname="UserService getBanDetailsByUserId should return ban details" name="UserService getBanDetailsByUserId should return ban details" time="0">
+    </testcase>
+    <testcase classname="UserService changeUserRole should change user role" name="UserService changeUserRole should change user role" time="0.001">
+    </testcase>
+    <testcase classname="UserService changeUserRole should throw not found if user does not exist" name="UserService changeUserRole should throw not found if user does not exist" time="0">
+    </testcase>
+    <testcase classname="UserService changeUserRole should throw internal server error on repository failure" name="UserService changeUserRole should throw internal server error on repository failure" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="AuthService" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="4.499" tests="46">
+    <testcase classname="AuthService should be defined" name="AuthService should be defined" time="0.012">
+    </testcase>
+    <testcase classname="AuthService signUp should create a new user and send verification email" name="AuthService signUp should create a new user and send verification email" time="0.004">
     </testcase>
     <testcase classname="AuthService signUp should throw conflict error if email is already verified" name="AuthService signUp should throw conflict error if email is already verified" time="0.025">
     </testcase>
-    <testcase classname="AuthService signUp should resend verification email if user exists but no verification token" name="AuthService signUp should resend verification email if user exists but no verification token" time="0.001">
+    <testcase classname="AuthService signUp should resend verification email if user exists but no verification token" name="AuthService signUp should resend verification email if user exists but no verification token" time="0.003">
     </testcase>
-    <testcase classname="AuthService signUp should resend verification email if existing token is expired" name="AuthService signUp should resend verification email if existing token is expired" time="0.002">
+    <testcase classname="AuthService signUp should resend verification email if existing token is expired" name="AuthService signUp should resend verification email if existing token is expired" time="0.005">
     </testcase>
-    <testcase classname="AuthService signUp should throw error if user creation fails" name="AuthService signUp should throw error if user creation fails" time="0.003">
+    <testcase classname="AuthService signUp should throw error if user creation fails" name="AuthService signUp should throw error if user creation fails" time="0.002">
     </testcase>
-    <testcase classname="AuthService signUp should throw internal server error for unexpected errors" name="AuthService signUp should throw internal server error for unexpected errors" time="0.001">
+    <testcase classname="AuthService signUp should throw internal server error for unexpected errors" name="AuthService signUp should throw internal server error for unexpected errors" time="0.003">
     </testcase>
     <testcase classname="AuthService resendConfirmationEmail should resend confirmation email by updating existing token" name="AuthService resendConfirmationEmail should resend confirmation email by updating existing token" time="0.001">
     </testcase>
@@ -271,87 +245,113 @@
     </testcase>
     <testcase classname="AuthService resendConfirmationEmail should throw error if user not found" name="AuthService resendConfirmationEmail should throw error if user not found" time="0.001">
     </testcase>
-    <testcase classname="AuthService resendConfirmationEmail should throw error if email is already verified" name="AuthService resendConfirmationEmail should throw error if email is already verified" time="0.002">
+    <testcase classname="AuthService resendConfirmationEmail should throw error if email is already verified" name="AuthService resendConfirmationEmail should throw error if email is already verified" time="0.001">
     </testcase>
     <testcase classname="AuthService resendConfirmationEmail should throw internal server error for unexpected errors" name="AuthService resendConfirmationEmail should throw internal server error for unexpected errors" time="0.001">
     </testcase>
-    <testcase classname="AuthService verifyEmail should verify email and return auth response with tokens" name="AuthService verifyEmail should verify email and return auth response with tokens" time="0.001">
+    <testcase classname="AuthService verifyEmail should verify email and return auth response with tokens" name="AuthService verifyEmail should verify email and return auth response with tokens" time="0.002">
     </testcase>
-    <testcase classname="AuthService verifyEmail should throw error for invalid token" name="AuthService verifyEmail should throw error for invalid token" time="0">
+    <testcase classname="AuthService verifyEmail should throw error for invalid token" name="AuthService verifyEmail should throw error for invalid token" time="0.001">
     </testcase>
-    <testcase classname="AuthService verifyEmail should throw error for expired token" name="AuthService verifyEmail should throw error for expired token" time="0.002">
+    <testcase classname="AuthService verifyEmail should throw error for expired token" name="AuthService verifyEmail should throw error for expired token" time="0.001">
     </testcase>
-    <testcase classname="AuthService verifyEmail should throw error if email is already verified" name="AuthService verifyEmail should throw error if email is already verified" time="0.002">
+    <testcase classname="AuthService verifyEmail should throw error if email is already verified" name="AuthService verifyEmail should throw error if email is already verified" time="0.001">
     </testcase>
-    <testcase classname="AuthService verifyEmail should throw internal server error for unexpected errors" name="AuthService verifyEmail should throw internal server error for unexpected errors" time="0.002">
+    <testcase classname="AuthService verifyEmail should throw internal server error for unexpected errors" name="AuthService verifyEmail should throw internal server error for unexpected errors" time="0.003">
     </testcase>
-    <testcase classname="AuthService signIn should sign in user and return auth response with tokens" name="AuthService signIn should sign in user and return auth response with tokens" time="0.003">
+    <testcase classname="AuthService signIn should sign in user and return auth response with tokens" name="AuthService signIn should sign in user and return auth response with tokens" time="0.015">
     </testcase>
-    <testcase classname="AuthService signIn should throw error if user not found" name="AuthService signIn should throw error if user not found" time="0.001">
+    <testcase classname="AuthService signIn should throw error if user not found" name="AuthService signIn should throw error if user not found" time="0.004">
     </testcase>
-    <testcase classname="AuthService signIn should throw error if password is invalid" name="AuthService signIn should throw error if password is invalid" time="0.001">
+    <testcase classname="AuthService signIn should throw error if password is invalid" name="AuthService signIn should throw error if password is invalid" time="0.002">
     </testcase>
-    <testcase classname="AuthService signIn should throw error and resend verification email if email not verified and no token exists" name="AuthService signIn should throw error and resend verification email if email not verified and no token exists" time="0.001">
+    <testcase classname="AuthService signIn should throw error and resend verification email if email not verified and no token exists" name="AuthService signIn should throw error and resend verification email if email not verified and no token exists" time="0.002">
     </testcase>
-    <testcase classname="AuthService signIn should throw error and resend verification email if token is expired" name="AuthService signIn should throw error and resend verification email if token is expired" time="0">
+    <testcase classname="AuthService signIn should throw error and resend verification email if token is expired" name="AuthService signIn should throw error and resend verification email if token is expired" time="0.002">
     </testcase>
     <testcase classname="AuthService signIn should throw error if email not verified with valid token" name="AuthService signIn should throw error if email not verified with valid token" time="0.002">
     </testcase>
-    <testcase classname="AuthService signIn should throw internal server error for unexpected errors" name="AuthService signIn should throw internal server error for unexpected errors" time="0.002">
+    <testcase classname="AuthService signIn should throw internal server error for unexpected errors" name="AuthService signIn should throw internal server error for unexpected errors" time="0.003">
     </testcase>
-    <testcase classname="AuthService refreshTokens should refresh tokens and return new access and refresh tokens" name="AuthService refreshTokens should refresh tokens and return new access and refresh tokens" time="0.001">
+    <testcase classname="AuthService refreshTokens should refresh tokens and return new access and refresh tokens" name="AuthService refreshTokens should refresh tokens and return new access and refresh tokens" time="0.002">
     </testcase>
-    <testcase classname="AuthService refreshTokens should throw error if no token provided" name="AuthService refreshTokens should throw error if no token provided" time="0.002">
+    <testcase classname="AuthService refreshTokens should throw error if no token provided" name="AuthService refreshTokens should throw error if no token provided" time="0.003">
     </testcase>
-    <testcase classname="AuthService refreshTokens should throw error if token is invalid" name="AuthService refreshTokens should throw error if token is invalid" time="0.001">
+    <testcase classname="AuthService refreshTokens should throw error if token is invalid" name="AuthService refreshTokens should throw error if token is invalid" time="0.003">
     </testcase>
-    <testcase classname="AuthService refreshTokens should throw error if user not found" name="AuthService refreshTokens should throw error if user not found" time="0">
+    <testcase classname="AuthService refreshTokens should throw error if user not found" name="AuthService refreshTokens should throw error if user not found" time="0.002">
     </testcase>
-    <testcase classname="AuthService refreshTokens should throw error if no stored hash found in redis" name="AuthService refreshTokens should throw error if no stored hash found in redis" time="0.001">
+    <testcase classname="AuthService refreshTokens should throw error if no stored hash found in redis" name="AuthService refreshTokens should throw error if no stored hash found in redis" time="0.002">
     </testcase>
     <testcase classname="AuthService refreshTokens should throw error if token hash validation fails" name="AuthService refreshTokens should throw error if token hash validation fails" time="0.002">
     </testcase>
-    <testcase classname="AuthService refreshTokens should throw internal server error for unexpected errors" name="AuthService refreshTokens should throw internal server error for unexpected errors" time="0.004">
+    <testcase classname="AuthService refreshTokens should throw internal server error for unexpected errors" name="AuthService refreshTokens should throw internal server error for unexpected errors" time="0.003">
     </testcase>
     <testcase classname="AuthService initResetPassword should create password reset token and send email" name="AuthService initResetPassword should create password reset token and send email" time="0.001">
     </testcase>
-    <testcase classname="AuthService initResetPassword should update existing expired token" name="AuthService initResetPassword should update existing expired token" time="0">
+    <testcase classname="AuthService initResetPassword should update existing expired token" name="AuthService initResetPassword should update existing expired token" time="0.003">
     </testcase>
-    <testcase classname="AuthService initResetPassword should throw error if user not found" name="AuthService initResetPassword should throw error if user not found" time="0.001">
+    <testcase classname="AuthService initResetPassword should throw error if user not found" name="AuthService initResetPassword should throw error if user not found" time="0.022">
     </testcase>
-    <testcase classname="AuthService initResetPassword should throw error if email is not verified" name="AuthService initResetPassword should throw error if email is not verified" time="0.001">
+    <testcase classname="AuthService initResetPassword should throw error if email is not verified" name="AuthService initResetPassword should throw error if email is not verified" time="0.002">
     </testcase>
     <testcase classname="AuthService initResetPassword should throw error if valid reset token already exists" name="AuthService initResetPassword should throw error if valid reset token already exists" time="0.001">
     </testcase>
-    <testcase classname="AuthService resendResetPasswordEmail should resend password reset email" name="AuthService resendResetPasswordEmail should resend password reset email" time="0.001">
+    <testcase classname="AuthService resendResetPasswordEmail should resend password reset email" name="AuthService resendResetPasswordEmail should resend password reset email" time="0.002">
     </testcase>
     <testcase classname="AuthService resendResetPasswordEmail should throw error if user not found" name="AuthService resendResetPasswordEmail should throw error if user not found" time="0.001">
     </testcase>
-    <testcase classname="AuthService resendResetPasswordEmail should throw error if email is not verified" name="AuthService resendResetPasswordEmail should throw error if email is not verified" time="0">
+    <testcase classname="AuthService resendResetPasswordEmail should throw error if email is not verified" name="AuthService resendResetPasswordEmail should throw error if email is not verified" time="0.001">
     </testcase>
-    <testcase classname="AuthService resendResetPasswordEmail should throw error if no valid token exists" name="AuthService resendResetPasswordEmail should throw error if no valid token exists" time="0.002">
+    <testcase classname="AuthService resendResetPasswordEmail should throw error if no valid token exists" name="AuthService resendResetPasswordEmail should throw error if no valid token exists" time="0.001">
     </testcase>
-    <testcase classname="AuthService resendResetPasswordEmail should throw error if token is expired" name="AuthService resendResetPasswordEmail should throw error if token is expired" time="0">
+    <testcase classname="AuthService resendResetPasswordEmail should throw error if token is expired" name="AuthService resendResetPasswordEmail should throw error if token is expired" time="0.002">
     </testcase>
-    <testcase classname="AuthService setNewPassword should set new password and invalidate token" name="AuthService setNewPassword should set new password and invalidate token" time="0.001">
+    <testcase classname="AuthService setNewPassword should set new password and invalidate token" name="AuthService setNewPassword should set new password and invalidate token" time="0.002">
     </testcase>
     <testcase classname="AuthService setNewPassword should throw error for invalid token" name="AuthService setNewPassword should throw error for invalid token" time="0.002">
     </testcase>
-    <testcase classname="AuthService setNewPassword should throw error for expired token" name="AuthService setNewPassword should throw error for expired token" time="0.001">
+    <testcase classname="AuthService setNewPassword should throw error for expired token" name="AuthService setNewPassword should throw error for expired token" time="0">
     </testcase>
     <testcase classname="AuthService setNewPassword should throw error if user not found" name="AuthService setNewPassword should throw error if user not found" time="0.001">
     </testcase>
-    <testcase classname="AuthService setNewPassword should throw error if new password is same as old password" name="AuthService setNewPassword should throw error if new password is same as old password" time="0.001">
+    <testcase classname="AuthService setNewPassword should throw error if new password is same as old password" name="AuthService setNewPassword should throw error if new password is same as old password" time="0.013">
     </testcase>
   </testsuite>
-  <testsuite name="PrismaService" errors="0" failures="0" skipped="0" timestamp="2026-01-29T09:23:22" time="0.121" tests="4">
-    <testcase classname="PrismaService should be defined" name="PrismaService should be defined" time="0">
+  <testsuite name="AuthController" errors="0" failures="0" skipped="0" timestamp="2026-02-02T10:44:39" time="4.532" tests="17">
+    <testcase classname="AuthController should be defined" name="AuthController should be defined" time="0.006">
     </testcase>
-    <testcase classname="PrismaService should call configService.getOrThrow with DATABASE_URL" name="PrismaService should call configService.getOrThrow with DATABASE_URL" time="0">
+    <testcase classname="AuthController signUp should call authService.signUp and return user" name="AuthController signUp should call authService.signUp and return user" time="0.002">
     </testcase>
-    <testcase classname="PrismaService should throw error if DATABASE_URL is empty string" name="PrismaService should throw error if DATABASE_URL is empty string" time="0.003">
+    <testcase classname="AuthController signUp should propagate errors from authService.signUp" name="AuthController signUp should propagate errors from authService.signUp" time="0.005">
     </testcase>
-    <testcase classname="PrismaService should be an instance of PrismaService" name="PrismaService should be an instance of PrismaService" time="0.001">
+    <testcase classname="AuthController resendConfirmationEmail should call authService.resendConfirmationEmail and return status response" name="AuthController resendConfirmationEmail should call authService.resendConfirmationEmail and return status response" time="0.001">
+    </testcase>
+    <testcase classname="AuthController resendConfirmationEmail should propagate errors from authService.resendConfirmationEmail" name="AuthController resendConfirmationEmail should propagate errors from authService.resendConfirmationEmail" time="0.001">
+    </testcase>
+    <testcase classname="AuthController verifyEmail should call authService.verifyEmail and return auth response" name="AuthController verifyEmail should call authService.verifyEmail and return auth response" time="0">
+    </testcase>
+    <testcase classname="AuthController verifyEmail should propagate errors from authService.verifyEmail" name="AuthController verifyEmail should propagate errors from authService.verifyEmail" time="0.001">
+    </testcase>
+    <testcase classname="AuthController signIn should call authService.signIn and return auth response" name="AuthController signIn should call authService.signIn and return auth response" time="0.001">
+    </testcase>
+    <testcase classname="AuthController signIn should propagate errors from authService.signIn" name="AuthController signIn should propagate errors from authService.signIn" time="0">
+    </testcase>
+    <testcase classname="AuthController refreshToken should call authService.refreshTokens and return refresh tokens response" name="AuthController refreshToken should call authService.refreshTokens and return refresh tokens response" time="0.001">
+    </testcase>
+    <testcase classname="AuthController refreshToken should propagate errors from authService.refreshTokens" name="AuthController refreshToken should propagate errors from authService.refreshTokens" time="0.001">
+    </testcase>
+    <testcase classname="AuthController initResetPassword should call authService.initResetPassword and return status response" name="AuthController initResetPassword should call authService.initResetPassword and return status response" time="0.001">
+    </testcase>
+    <testcase classname="AuthController initResetPassword should propagate errors from authService.initResetPassword" name="AuthController initResetPassword should propagate errors from authService.initResetPassword" time="0">
+    </testcase>
+    <testcase classname="AuthController resendResetPasswordEmail should call authService.resendResetPasswordEmail and return status response" name="AuthController resendResetPasswordEmail should call authService.resendResetPasswordEmail and return status response" time="0.001">
+    </testcase>
+    <testcase classname="AuthController resendResetPasswordEmail should propagate errors from authService.resendResetPasswordEmail" name="AuthController resendResetPasswordEmail should propagate errors from authService.resendResetPasswordEmail" time="0.001">
+    </testcase>
+    <testcase classname="AuthController setNewPassword should call authService.setNewPassword and return status response" name="AuthController setNewPassword should call authService.setNewPassword and return status response" time="0">
+    </testcase>
+    <testcase classname="AuthController setNewPassword should propagate errors from authService.setNewPassword" name="AuthController setNewPassword should propagate errors from authService.setNewPassword" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

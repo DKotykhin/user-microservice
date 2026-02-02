@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthCheckController } from '../health-check.controller';
 import { HealthCheckService } from '../health-check.service';
+import { GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
 
 describe('HealthCheckController', () => {
   let controller: HealthCheckController;
@@ -17,7 +18,10 @@ describe('HealthCheckController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideInterceptor(GrpcMetricsInterceptor)
+      .useValue({})
+      .compile();
 
     controller = module.get<HealthCheckController>(HealthCheckController);
     service = module.get(HealthCheckService);
