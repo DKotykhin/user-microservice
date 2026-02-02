@@ -15,7 +15,9 @@ import { AUTH_V1_PACKAGE_NAME } from './generated-types/auth';
 import { USER_V1_PACKAGE_NAME } from './generated-types/user';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: process.env.NODE_ENV === 'production' ? ['error'] : ['log', 'debug', 'warn', 'error', 'verbose'],
+  });
 
   const logger = new Logger('Main');
 

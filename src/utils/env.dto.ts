@@ -3,6 +3,10 @@ import { IsNotEmpty, IsNumber, IsPositive, IsString, IsUrl } from 'class-validat
 export class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
+  readonly NODE_ENV: string;
+
+  @IsString()
+  @IsNotEmpty()
   readonly TRANSPORT_URL: string;
 
   @IsNumber()
