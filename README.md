@@ -1,98 +1,272 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# User Microservice
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based microservice for user management and authentication, part of the CoffeeDoor microservices architecture.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+This microservice handles all user-related operations including authentication, user management, and authorization. It exposes gRPC endpoints for inter-service communication and provides comprehensive user lifecycle management.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: NestJS 11
+- **Language**: TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Transport**: gRPC (Google Remote Procedure Call)
+- **Caching**: Redis (ioredis)
+- **Message Broker**: RabbitMQ (AMQP)
+- **Authentication**: JWT (Access & Refresh Tokens)
+- **Password Hashing**: bcryptjs
+- **Observability**: OpenTelemetry (Tracing), Prometheus (Metrics)
 
-```bash
-$ npm install
+## Features
+
+### Authentication Service (`AuthService`)
+- User registration with email verification
+- User sign-in with JWT token generation
+- Email verification flow
+- Password reset functionality
+- Token refresh mechanism
+- Resend confirmation/reset emails
+
+### User Service (`UserService`)
+- Get user by ID
+- Update user profile (name, phone, avatar)
+- Delete user account
+- Password confirmation and change
+- **Admin Operations**:
+  - Get all users (paginated)
+  - Ban/Unban users with reason tracking
+  - Get banned users list
+  - Get ban history by user ID
+  - Change user roles
+
+### Health Check Service (`HealthCheckService`)
+- Application health status
+- Database connectivity check
+
+## Database Schema
+
+### Models
+
+**User**
+- `id` - UUID primary key
+- `name` - Optional display name
+- `email` - Unique email address
+- `phoneNumber` - Optional phone number
+- `role` - User role (USER, ADMIN, MODERATOR, VISITOR)
+- `avatarUrl` - Optional profile picture URL
+- `passwordHash` - Hashed password
+- `isEmailVerified` - Email verification status
+- `lastLoginAt` - Last login timestamp
+- `isBanned` - Ban status
+- `createdAt` / `updatedAt` - Timestamps
+
+**EmailVerificationToken**
+- Linked to User
+- Token with expiration
+- Tracks verification status
+
+**PasswordResetToken**
+- Linked to User
+- Token with expiration
+- Tracks password change history
+
+**BanDetails**
+- Linked to User
+- Tracks ban/unban actions
+- Includes reason and duration
+
+## gRPC Services
+
+### Auth Service (`auth.v1`)
+```protobuf
+service AuthService {
+  rpc SignUp(SignUpRequest) returns (User)
+  rpc SignIn(SignInRequest) returns (AuthResponse)
+  rpc VerifyEmail(Token) returns (AuthResponse)
+  rpc ResendConfirmationEmail(Email) returns (StatusResponse)
+  rpc RefreshTokens(Token) returns (RefreshTokensResponse)
+  rpc InitResetPassword(Email) returns (StatusResponse)
+  rpc ResendResetPasswordEmail(Email) returns (StatusResponse)
+  rpc SetNewPassword(SetNewPasswordRequest) returns (StatusResponse)
+}
 ```
 
-## Compile and run the project
+### User Service (`user.v1`)
+```protobuf
+service UserService {
+  // User operations
+  rpc GetUserById(Id) returns (User)
+  rpc UpdateUser(UpdateUserRequest) returns (User)
+  rpc DeleteUser(Id) returns (StatusResponse)
+  rpc ConfirmPassword(PasswordRequest) returns (StatusResponse)
+  rpc ChangePassword(PasswordRequest) returns (StatusResponse)
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+  // Admin operations
+  rpc GetAllUsers(AllUsersRequest) returns (AllUsersResponse)
+  rpc BanUser(BanUserRequest) returns (User)
+  rpc UnbanUser(BanUserRequest) returns (User)
+  rpc GetBannedUsers(Empty) returns (GetBannedUsersResponse)
+  rpc GetBanDetailsByUserId(Id) returns (BanDetailsResponse)
+  rpc ChangeUserRole(UserRoleRequest) returns (User)
+}
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+### Health Check Service (`health_check.v1`)
+```protobuf
+service HealthCheckService {
+  rpc CheckAppHealth(Empty) returns (HealthCheckResponse)
+  rpc CheckDatabaseConnection(Empty) returns (HealthCheckResponse)
+}
 ```
 
-## Deployment
+## Environment Variables
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Variable | Description |
+|----------|-------------|
+| `NODE_ENV` | Environment (development/production) |
+| `TRANSPORT_URL` | gRPC server URL (e.g., `0.0.0.0:50051`) |
+| `HTTP_PORT` | HTTP port for metrics endpoint |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_ACCESS_SECRET` | Secret for access token signing |
+| `JWT_REFRESH_SECRET` | Secret for refresh token signing |
+| `JWT_ACCESS_EXPIRATION` | Access token expiration (seconds) |
+| `JWT_REFRESH_EXPIRATION` | Refresh token expiration (seconds) |
+| `REDIS_HOST` | Redis server host |
+| `REDIS_PORT` | Redis server port |
+| `RABBITMQ_URL` | RabbitMQ connection URL |
+| `RABBITMQ_QUEUE` | RabbitMQ queue name |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Project Setup
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npm run db:generate
+
+# Push database schema
+npm run db:push
+
+# Run migrations
+npm run db:migrate
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Running the Service
 
-## Resources
+```bash
+# Development mode
+npm run start:dev
 
-Check out a few resources that may come in handy when working with NestJS:
+# Debug mode
+npm run start:debug
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Production mode
+npm run build
+npm run start:prod
+```
 
-## Support
+## Database Commands
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Generate Prisma client
+npm run db:generate
 
-## Stay in touch
+# Push schema changes to database
+npm run db:push
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Run migrations
+npm run db:migrate
+
+# Open Prisma Studio (database GUI)
+npm run prisma:studio
+```
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# Watch mode
+npm run test:watch
+
+# Test coverage
+npm run test:cov
+
+# E2E tests
+npm run test:e2e
+```
+
+## Code Quality
+
+```bash
+# Lint and fix
+npm run lint
+
+# Format code
+npm run format
+```
+
+## Project Structure
+
+```
+user-microservice/
+├── proto/                    # Protocol buffer definitions
+│   ├── auth.proto
+│   ├── user.proto
+│   └── health-check.proto
+├── prisma/
+│   ├── schema.prisma        # Database schema
+│   └── generated-types/     # Generated Prisma types
+├── src/
+│   ├── auth/                # Authentication module
+│   ├── user/                # User management module
+│   ├── health-check/        # Health check module
+│   ├── hash/                # Password hashing service
+│   ├── token/               # JWT token service
+│   ├── redis/               # Redis caching service
+│   ├── prisma/              # Database service
+│   ├── transport/
+│   │   └── message-broker/  # RabbitMQ integration
+│   ├── supervision/
+│   │   ├── metrics/         # Prometheus metrics
+│   │   └── tracing/         # OpenTelemetry tracing
+│   ├── utils/               # Utilities and filters
+│   ├── generated-types/     # Generated proto types
+│   ├── app.module.ts
+│   └── main.ts
+└── test/                    # E2E tests
+```
+
+## Generating Proto Types
+
+```bash
+# Generate TypeScript types from proto files
+protoc -I ./proto ./proto/auth.proto --ts_proto_out=./src/generated-types \
+  --ts_proto_opt=nestJs=true \
+  --ts_proto_opt=useNullAsOptional=true \
+  --ts_proto_opt=useDate=true
+
+protoc -I ./proto ./proto/user.proto --ts_proto_out=./src/generated-types \
+  --ts_proto_opt=nestJs=true \
+  --ts_proto_opt=useNullAsOptional=true \
+  --ts_proto_opt=useDate=true
+
+protoc -I ./proto ./proto/health-check.proto --ts_proto_out=./src/generated-types \
+  --ts_proto_opt=nestJs=true
+```
+
+## Security Features
+
+- Password hashing with bcryptjs
+- JWT-based authentication with access/refresh token rotation
+- Refresh token stored as hash in Redis
+- Email verification required for sign-in
+- Token expiration and invalidation
+- Ban system with detailed tracking
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED - Private project
