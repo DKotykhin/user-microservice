@@ -3,8 +3,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HashService } from 'src/hash/hash.service';
 import { AppError } from 'src/utils/errors/app-error';
 import { convertEnum } from 'src/utils/convertEnum';
-import type { UserRole as PrismaUserRole } from 'prisma/generated-types/enums';
+import { MessageBrokerService } from 'src/transport/message-broker/message-broker.service';
+import { UserRepository } from './user.repository';
 
+import type { UserRole as PrismaUserRole } from 'prisma/generated-types/enums';
 import {
   UserRole,
   type AllUsersResponse,
@@ -17,15 +19,38 @@ import {
   type UpdateUserRequest,
   type User,
 } from 'src/generated-types/user';
-import { UserRepository } from './user.repository';
+import type { EmailRequest } from 'src/transport/message-broker/email.request.interface';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly hashService: HashService,
     private readonly userRepository: UserRepository,
+    private readonly messageBrokerService: MessageBrokerService,
   ) {}
   protected readonly logger = new Logger(UserService.name);
+
+  private sendBanNotificationEmail(to: string, name?: string | null, reason?: string): void {
+    this.messageBrokerService.emitMessage('notification.email.send', {
+      to,
+      subject: 'Account Banned',
+      template: 'account-banned',
+      context: {
+        name: name || 'User',
+        reason,
+      },
+    } as EmailRequest);
+  }
+  private sendUnBanNotificationEmail(to: string, name?: string | null): void {
+    this.messageBrokerService.emitMessage('notification.email.send', {
+      to,
+      subject: 'Account Unbanned',
+      template: 'account-unbanned',
+      context: {
+        name: name || 'User',
+      },
+    } as EmailRequest);
+  }
 
   async getUserById(id: string): Promise<User> {
     this.logger.log(`Fetching user by ID: ${id}`);
@@ -173,6 +198,13 @@ export class UserService {
         id: data.id,
         data: { isBanned: true },
       });
+
+      this.sendBanNotificationEmail(
+        user.email,
+        user.name,
+        data.reason || 'Your account has been banned. Please contact support for more information.',
+      );
+
       this.logger.log(`User banned with ID: ${data.id}`);
       return {
         ...bannedUser,
@@ -210,6 +242,9 @@ export class UserService {
         id: data.id,
         data: { isBanned: false },
       });
+
+      this.sendUnBanNotificationEmail(user.email, user.name);
+
       this.logger.log(`User unbanned with ID: ${data.id}`);
       return {
         ...unbannedUser,

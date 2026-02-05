@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
 import { HashService } from 'src/hash/hash.service';
@@ -8,6 +9,8 @@ import { AppError } from 'src/utils/errors/app-error';
 import { convertEnum } from 'src/utils/convertEnum';
 import { RedisService } from 'src/redis/redis.service';
 import { MessageBrokerService } from 'src/transport/message-broker/message-broker.service';
+import { RateLimiterService } from 'src/rate-limiter/rate-limiter.service';
+import { DeviceService } from 'src/device/device.service';
 import { AuthRepository } from './auth.repository';
 
 import { type StatusResponse, UserRole, type User } from 'src/generated-types/user';
@@ -16,6 +19,26 @@ import type { EmailRequest } from 'src/transport/message-broker/email.request.in
 
 @Injectable()
 export class AuthService {
+  protected readonly logger = new Logger(AuthService.name);
+  private readonly FRONTEND_URL: string;
+  private readonly EMAIL_TOKEN_TTL: number;
+  private readonly PASSWORD_RESET_TOKEN_TTL: number;
+
+  private readonly LOGIN_RATE_LIMIT = {
+    maxAttempts: 5,
+    windowSeconds: 300, // 5 minutes
+    lockoutSeconds: 900, // 15 minute lockout after 5 failures
+  };
+  private readonly EMAIL_RESEND_RATE_LIMIT = {
+    maxAttempts: 3,
+    windowSeconds: 300, // 5 minutes
+  };
+  private readonly PASSWORD_RESET_RATE_LIMIT = {
+    maxAttempts: 3,
+    windowSeconds: 3600, // 1 hour
+    lockoutSeconds: 3600, // 1 hour lockout
+  };
+
   constructor(
     private readonly hashService: HashService,
     private readonly tokenService: TokenService,
@@ -23,8 +46,14 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly redisService: RedisService,
     private readonly messageBrokerService: MessageBrokerService,
-  ) {}
-  protected readonly logger = new Logger(AuthService.name);
+    private readonly configService: ConfigService,
+    private readonly rateLimiterService: RateLimiterService,
+    private readonly deviceService: DeviceService,
+  ) {
+    this.FRONTEND_URL = this.configService.getOrThrow<string>('FRONTEND_URL');
+    this.EMAIL_TOKEN_TTL = this.configService.getOrThrow<number>('EMAIL_TOKEN_TTL') || 3600; // default to 1 hour
+    this.PASSWORD_RESET_TOKEN_TTL = this.configService.getOrThrow<number>('PASSWORD_RESET_TOKEN_TTL') || 3600; // default to 1 hour
+  }
 
   private generateCryptoToken(): string {
     return crypto.randomBytes(32).toString('hex');
@@ -37,7 +66,7 @@ export class AuthService {
       template: 'verify-email',
       context: {
         name: name || 'New User',
-        verificationLink: `https://yourapp.com/verify-email?token=${token}`,
+        verificationLink: `${this.FRONTEND_URL}/verify-email?token=${token}`,
       },
     } as EmailRequest);
   }
@@ -49,9 +78,67 @@ export class AuthService {
       template: 'reset-password',
       context: {
         name: name || 'User',
-        resetLink: `https://yourapp.com/reset-password?token=${token}`,
+        resetLink: `${this.FRONTEND_URL}/reset-password?token=${token}`,
       },
     } as EmailRequest);
+  }
+
+  private sendPasswordResetConfirmationEmail(to: string, name?: string | null): void {
+    this.messageBrokerService.emitMessage('notification.email.send', {
+      to,
+      subject: 'Reset password confirmation',
+      template: 'reset-password-confirmation',
+      context: {
+        name: name || 'User',
+      },
+    } as EmailRequest);
+  }
+
+  private sendAccountLockedEmail(to: string, name?: string | null, lockoutMinutes?: number): void {
+    this.messageBrokerService.emitMessage('notification.email.send', {
+      to,
+      subject: 'Account Temporarily Locked - Security Alert',
+      template: 'account-locked',
+      context: {
+        name: name || 'User',
+        lockoutMinutes: lockoutMinutes || Math.ceil(this.LOGIN_RATE_LIMIT.lockoutSeconds / 60),
+      },
+    } as EmailRequest);
+  }
+
+  private sendNewLoginNotificationEmail(
+    to: string,
+    name: string | null | undefined,
+    loginInfo: {
+      ipAddress: string;
+      userAgent: string;
+      location?: string;
+      timestamp: Date;
+    },
+  ): void {
+    this.messageBrokerService.emitMessage('notification.email.send', {
+      to,
+      subject: 'New Login to Your Account',
+      template: 'new-login',
+      context: {
+        name: name || 'User',
+        ipAddress: loginInfo.ipAddress,
+        device: this.parseUserAgent(loginInfo.userAgent),
+        location: loginInfo.location || 'Unknown',
+        timestamp: loginInfo.timestamp.toISOString(),
+      },
+    } as EmailRequest);
+  }
+
+  private parseUserAgent(userAgent: string): string {
+    // Simple parsing - consider using a library like 'ua-parser-js' for production
+    if (userAgent.includes('iPhone')) return 'iPhone';
+    if (userAgent.includes('Android')) return 'Android Device';
+    if (userAgent.includes('Windows')) return 'Windows PC';
+    if (userAgent.includes('Mac')) return 'Mac';
+    if (userAgent.includes('Linux')) return 'Linux';
+    if (userAgent.includes('Postman')) return 'Postman Client';
+    return 'Unknown Device';
   }
 
   async signUp(data: SignUpRequest): Promise<User> {
@@ -70,7 +157,7 @@ export class AuthService {
           await this.authRepository.createEmailVerificationToken({
             userId: existingUser.id,
             token,
-            expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+            expiresAt: new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000),
           });
           this.sendVerificationEmail(existingUser.email, token, existingUser.name);
           this.logger.log(`Resent email verification token for user ID: ${existingUser.id}`);
@@ -81,7 +168,7 @@ export class AuthService {
           await this.authRepository.updateEmailVerificationToken({
             userId: existingUser.id,
             token,
-            expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+            expiresAt: new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000),
           });
           this.sendVerificationEmail(existingUser.email, token, existingUser.name);
           this.logger.log(`Resent expired email verification token for user ID: ${existingUser.id}`);
@@ -105,7 +192,7 @@ export class AuthService {
       await this.authRepository.createEmailVerificationToken({
         userId: newUser.id,
         token,
-        expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+        expiresAt: new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000),
       });
 
       // Send verification email
@@ -126,6 +213,10 @@ export class AuthService {
   async resendConfirmationEmail(email: string): Promise<StatusResponse> {
     this.logger.log(`Resending confirmation email to: ${email}`);
     try {
+      // Check rate limit for resending confirmation email
+      await this.rateLimiterService.checkRateLimit('email_resend', email, this.EMAIL_RESEND_RATE_LIMIT);
+
+      // Find the user by email
       const user = await this.userRepository.findUserByEmail(email);
       if (!user) {
         this.logger.warn(`User not found with email: ${email}`);
@@ -138,23 +229,23 @@ export class AuthService {
 
       const emailVerification = await this.authRepository.findEmailVerificationTokenByUserId(user.id);
       const token = this.generateCryptoToken();
+      const expiresAt = new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000); // 1 hour
       if (emailVerification) {
         await this.authRepository.updateEmailVerificationToken({
           userId: user.id,
           token,
-          expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+          expiresAt,
         });
-        this.sendVerificationEmail(user.email, token, user.name);
         this.logger.log(`Updated email verification token for user ID: ${user.id}`);
       } else {
         await this.authRepository.createEmailVerificationToken({
           userId: user.id,
           token,
-          expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+          expiresAt,
         });
-        this.sendVerificationEmail(user.email, token, user.name);
         this.logger.log(`Created email verification token for user ID: ${user.id}`);
       }
+      this.sendVerificationEmail(user.email, token, user.name);
 
       return { success: true, message: 'Confirmation email resent successfully' };
     } catch (error) {
@@ -165,20 +256,20 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<AuthResponse> {
-    this.logger.log(`Verifying email with token: ${token}`);
+    this.logger.log(`Verifying email with token: ${token.slice(0, 8)}...`);
     try {
       // Find the email verification record
       const emailVerification = await this.authRepository.findEmailVerificationTokenByToken(token);
       if (!emailVerification) {
-        this.logger.warn(`Invalid email verification token: ${token}`);
+        this.logger.warn(`Invalid email verification token: ${token.slice(0, 8)}...`);
         throw AppError.badRequest('Invalid or expired email verification token');
       }
       if (emailVerification.expiresAt <= new Date()) {
-        this.logger.warn(`Expired email verification token: ${token}`);
+        this.logger.warn(`Expired email verification token: ${token.slice(0, 8)}...`);
         throw AppError.badRequest('Invalid or expired email verification token');
       }
       if (emailVerification.verifiedAt) {
-        this.logger.warn(`Email already verified for token: ${token}`);
+        this.logger.warn(`Email already verified for token: ${token.slice(0, 8)}...`);
         throw AppError.badRequest('Email is already verified');
       }
 
@@ -221,12 +312,24 @@ export class AuthService {
 
   async signIn(data: SignInRequest): Promise<AuthResponse> {
     this.logger.log(`Signing in user with email: ${data.email}`);
+    const email = data.email.toLowerCase();
+
     try {
+      // Check if account is locked (does NOT increment counter)
+      await this.rateLimiterService.checkLockout('sign_in', email);
+
       // Find the user by email
       const user = await this.userRepository.findUserByEmail(data.email);
       if (!user) {
+        // Record failed attempt even for non-existent users (prevents user enumeration timing attacks)
+        await this.rateLimiterService.recordFailedAttempt('sign_in', email, this.LOGIN_RATE_LIMIT);
         this.logger.warn(`User not found with email: ${data.email}`);
         throw AppError.unauthorized('Invalid email or password');
+      }
+
+      // Check if user is banned
+      if (user.isBanned) {
+        throw AppError.forbidden('User is banned');
       }
 
       // Check if email is verified
@@ -237,7 +340,7 @@ export class AuthService {
           await this.authRepository.createEmailVerificationToken({
             userId: user.id,
             token,
-            expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+            expiresAt: new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000),
           });
           this.sendVerificationEmail(user.email, token, user.name);
           this.logger.log(`Resent email verification token for user ID: ${user.id}`);
@@ -248,7 +351,7 @@ export class AuthService {
           await this.authRepository.updateEmailVerificationToken({
             userId: user.id,
             token,
-            expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+            expiresAt: new Date(Date.now() + this.EMAIL_TOKEN_TTL * 1000),
           });
           this.sendVerificationEmail(user.email, token, user.name);
           this.logger.log(`Resent expired email verification token for user ID: ${user.id}`);
@@ -261,8 +364,57 @@ export class AuthService {
       // Verify password
       const isPasswordValid = await this.hashService.compare(data.password, user.passwordHash);
       if (!isPasswordValid) {
+        // Record failed attempt ONLY on wrong password
+        const { attemptsLeft, isLocked } = await this.rateLimiterService.recordFailedAttempt(
+          'sign_in',
+          email,
+          this.LOGIN_RATE_LIMIT,
+        );
+
+        if (isLocked) {
+          const lockoutMinutes = Math.ceil(this.LOGIN_RATE_LIMIT.lockoutSeconds / 60);
+          this.sendAccountLockedEmail(user.email, user.name, lockoutMinutes);
+          this.logger.warn(`Account locked for user: ${user.id} after too many failed attempts`);
+          throw AppError.tooManyRequests(
+            `Account locked due to too many failed attempts. Please try again in ${lockoutMinutes} minutes.`,
+          );
+        }
+
         this.logger.warn(`Invalid password for user with email: ${data.email}`);
-        throw AppError.unauthorized('Invalid email or password');
+        throw AppError.unauthorized(
+          `Invalid email or password. ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining.`,
+        );
+      }
+
+      // Clear any previous rate limit records on successful login
+      await this.rateLimiterService.resetRateLimit('sign_in', email);
+
+      // Check for new device and send notification if needed
+      const clientInfo = data.clientInfo;
+      if (clientInfo?.ipAddress && clientInfo?.userAgent) {
+        const deviceId = this.deviceService.generateDeviceId(clientInfo.ipAddress, clientInfo.userAgent);
+        const isKnownDevice = await this.deviceService.isKnownDevice(user.id, deviceId);
+
+        if (!isKnownDevice) {
+          // New device detected - send notification email
+          this.sendNewLoginNotificationEmail(user.email, user.name, {
+            ipAddress: clientInfo.ipAddress,
+            userAgent: clientInfo.userAgent,
+            timestamp: new Date(),
+          });
+
+          // Register the new device
+          await this.deviceService.registerDevice(user.id, {
+            deviceId,
+            ipAddress: clientInfo.ipAddress,
+            userAgent: clientInfo.userAgent,
+          });
+
+          this.logger.log(`New device login detected for user ${user.id}, notification sent`);
+        } else {
+          // Update last used timestamp for known device
+          await this.deviceService.updateDeviceLastUsed(user.id, deviceId);
+        }
       }
 
       // Update last login timestamp
@@ -358,50 +510,63 @@ export class AuthService {
 
   async initResetPassword(email: string): Promise<StatusResponse> {
     this.logger.log(`Initiating password reset for email: ${email}`);
-    const user = await this.userRepository.findUserByEmail(email);
-    if (!user) {
-      this.logger.warn(`User not found with email: ${email}`);
-      throw AppError.badRequest('User with the provided email does not exist');
-    }
-    if (!user.isEmailVerified) {
-      this.logger.warn(`Email not verified for user with email: ${email}`);
-      throw AppError.badRequest('Email is not verified');
-    }
+    try {
+      // Check rate limit for password reset initiation
+      await this.rateLimiterService.checkRateLimit('password_reset_initiate', email, this.PASSWORD_RESET_RATE_LIMIT);
 
-    // Check if a password reset token already exists for the user
-    const existingToken = await this.authRepository.findPasswordResetTokenByToken(user.id);
-    if (existingToken && existingToken.expiresAt > new Date()) {
-      this.logger.log(`Existing valid password reset token found for user ID: ${user.id}`);
-      throw AppError.badRequest('A valid password reset token already exists');
+      // Find the user by email
+      const user = await this.userRepository.findUserByEmail(email);
+      if (!user) {
+        this.logger.warn(`User not found with email: ${email}`);
+        throw AppError.badRequest('User with the provided email does not exist');
+      }
+      if (!user.isEmailVerified) {
+        this.logger.warn(`Email not verified for user with email: ${email}`);
+        throw AppError.badRequest('Email is not verified');
+      }
+
+      // Check if a password reset token already exists for the user
+      const existingToken = await this.authRepository.findPasswordResetTokenByUserId(user.id);
+      if (existingToken && existingToken.expiresAt > new Date()) {
+        this.logger.log(`Existing valid password reset token found for user ID: ${user.id}`);
+        return { success: true, message: 'Password reset token already exists. Please check your email.' };
+      }
+
+      // Create a new password reset token
+      const token = this.generateCryptoToken();
+      if (existingToken) {
+        await this.authRepository.updatePasswordResetTokenById({
+          id: existingToken.id,
+          token,
+          expiresAt: new Date(Date.now() + this.PASSWORD_RESET_TOKEN_TTL * 1000), // 1 hour
+        });
+        this.logger.log(`Updated password reset token for user ID: ${user.id}`);
+      } else {
+        await this.authRepository.createPasswordResetToken({
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + this.PASSWORD_RESET_TOKEN_TTL * 1000), // 1 hour
+        });
+        this.logger.log(`Created password reset token for user ID: ${user.id}`);
+      }
+
+      // Send password reset email
+      this.sendPasswordResetEmail(user.email, token, user.name);
+      this.logger.log(`Password reset email sent to user ID: ${user.id}`);
+
+      return { success: true, message: 'Password reset token generated successfully' };
+    } catch (error) {
+      this.logger.error(`Error during password reset initiation: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to initiate password reset');
     }
-
-    // Create a new password reset token
-    const token = this.generateCryptoToken();
-    if (existingToken) {
-      await this.authRepository.updatePasswordResetTokenById({
-        id: existingToken.id,
-        token,
-        expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
-      });
-      this.logger.log(`Updated password reset token for user ID: ${user.id}`);
-    } else {
-      await this.authRepository.createPasswordResetToken({
-        userId: user.id,
-        token,
-        expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
-      });
-      this.logger.log(`Created password reset token for user ID: ${user.id}`);
-    }
-
-    // Send password reset email
-    this.sendPasswordResetEmail(user.email, token, user.name);
-    this.logger.log(`Password reset email sent to user ID: ${user.id}`);
-
-    return { success: true, message: 'Password reset token generated successfully' };
   }
 
   async resendResetPasswordEmail(email: string): Promise<StatusResponse> {
     this.logger.log(`Resending password reset email to: ${email}`);
+    // Check rate limit for resending password reset email
+    await this.rateLimiterService.checkRateLimit('password_reset_resend', email, this.EMAIL_RESEND_RATE_LIMIT);
+
     const user = await this.userRepository.findUserByEmail(email);
     if (!user) {
       this.logger.warn(`User not found with email: ${email}`);
@@ -413,7 +578,7 @@ export class AuthService {
     }
 
     // Find existing password reset token
-    const passwordReset = await this.authRepository.findPasswordResetTokenByToken(user.id);
+    const passwordReset = await this.authRepository.findPasswordResetTokenByUserId(user.id);
     if (!passwordReset || passwordReset.expiresAt <= new Date()) {
       this.logger.warn(`No valid password reset token found for user ID: ${user.id}`);
       throw AppError.badRequest('No valid password reset token found. Please initiate password reset again.');
@@ -427,44 +592,114 @@ export class AuthService {
   }
 
   async setNewPassword(token: string, password: string): Promise<StatusResponse> {
-    this.logger.log(`Setting new password with token: ${token}`);
-    // Find the password reset record
-    const passwordReset = await this.authRepository.findPasswordResetTokenByToken(token);
-    if (!passwordReset) {
-      this.logger.warn(`Invalid password reset token: ${token}`);
-      throw AppError.badRequest('Invalid or expired password reset token');
+    this.logger.log(`Setting new password with token: ${token.slice(0, 8)}...`);
+    try {
+      // Find the password reset record
+      const passwordReset = await this.authRepository.findPasswordResetTokenByToken(token);
+      if (!passwordReset) {
+        this.logger.warn(`Invalid password reset token: ${token.slice(0, 8)}...`);
+        throw AppError.badRequest('Invalid or expired password reset token');
+      }
+      if (passwordReset.expiresAt <= new Date()) {
+        this.logger.warn(`Expired password reset token: ${token.slice(0, 8)}...`);
+        throw AppError.badRequest('Invalid or expired password reset token');
+      }
+
+      // find the user
+      const user = await this.userRepository.findUserById(passwordReset.userId);
+      if (!user) {
+        this.logger.warn(`User not found with ID: ${passwordReset.userId}`);
+        throw AppError.badRequest('Invalid password reset token');
+      }
+
+      // Ensure the new password is different from the old one
+      await this.hashService.same(password, user.passwordHash);
+
+      // Hash the new password
+      const passwordHash = await this.hashService.create(password);
+
+      // Update the user's password
+      await this.userRepository.updateUser({
+        id: passwordReset.userId,
+        data: { passwordHash },
+      });
+
+      // Invalidate the used password reset token
+      await this.authRepository.updatePasswordResetTokenById({
+        id: passwordReset.id,
+        token: '',
+        changedAt: new Date(),
+      });
+
+      // Invalidate all existing refresh tokens for the user
+      const keys = await this.redisService.keys(`refresh:${passwordReset.userId}:*`);
+      if (keys.length > 0) {
+        await this.redisService.del(...keys);
+        this.logger.log(`Invalidated ${keys.length} refresh tokens for user ID: ${passwordReset.userId}`);
+      }
+
+      // Clear all known devices (user must re-authenticate on all devices)
+      await this.deviceService.removeAllDevices(passwordReset.userId);
+
+      // Reset rate limit for password reset attempts
+      await this.rateLimiterService.resetRateLimit('password_reset', user.email);
+
+      // send a confirmation email about password change
+      this.sendPasswordResetConfirmationEmail(user.email, user.name);
+
+      this.logger.log(`Password reset successfully for user ID: ${passwordReset.userId}`);
+      return { success: true, message: 'Password reset successfully' };
+    } catch (error) {
+      this.logger.error(`Error during setting new password: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to set new password');
     }
-    if (passwordReset.expiresAt <= new Date()) {
-      this.logger.warn(`Expired password reset token: ${token}`);
-      throw AppError.badRequest('Invalid or expired password reset token');
+  }
+
+  async signOutOtherDevices(userId: string, currentSessionId: string): Promise<StatusResponse> {
+    this.logger.log(`Logging out user from other devices: ${userId}`);
+
+    try {
+      const keys = await this.redisService.keys(`refresh:${userId}:*`);
+      const currentKey = `refresh:${userId}:${currentSessionId}`;
+
+      // Filter out current session
+      const keysToDelete = keys.filter((key) => key !== currentKey);
+
+      if (keysToDelete.length > 0) {
+        await this.redisService.del(...keysToDelete);
+        this.logger.log(`Invalidated ${keysToDelete.length} other sessions for user ID: ${userId}`);
+      }
+
+      return {
+        success: true,
+        message: `Successfully logged out from ${keysToDelete.length} other device${keysToDelete.length !== 1 ? 's' : ''}.`,
+      };
+    } catch (error) {
+      this.logger.error(`Error during logout other devices: ${error instanceof Error ? error.message : error}`);
+      throw AppError.internalServerError('Failed to logout from other devices');
     }
+  }
 
-    // find the user
-    const user = await this.userRepository.findUserById(passwordReset.userId);
-    if (!user) {
-      this.logger.warn(`User not found with ID: ${passwordReset.userId}`);
-      throw AppError.badRequest('Invalid password reset token');
+  async signOutAllDevices(userId: string): Promise<StatusResponse> {
+    this.logger.log(`Logging out user from all devices: ${userId}`);
+
+    try {
+      // Find and delete all refresh tokens for this user
+      const keys = await this.redisService.keys(`refresh:${userId}:*`);
+
+      if (keys.length > 0) {
+        await this.redisService.del(...keys);
+        this.logger.log(`Invalidated ${keys.length} sessions for user ID: ${userId}`);
+      }
+
+      return {
+        success: true,
+        message: `Successfully logged out from ${keys.length} device${keys.length !== 1 ? 's' : ''}.`,
+      };
+    } catch (error) {
+      this.logger.error(`Error during logout all devices: ${error instanceof Error ? error.message : error}`);
+      throw AppError.internalServerError('Failed to logout from all devices');
     }
-
-    // Ensure the new password is different from the old one
-    await this.hashService.same(password, user.passwordHash);
-
-    // Hash the new password
-    const passwordHash = await this.hashService.create(password);
-
-    // Update the user's password
-    await this.userRepository.updateUser({
-      id: passwordReset.userId,
-      data: { passwordHash },
-    });
-
-    // Invalidate the used password reset token
-    await this.authRepository.updatePasswordResetTokenById({
-      id: passwordReset.id,
-      token: '',
-      changedAt: new Date(),
-    });
-    this.logger.log(`Password reset successfully for user ID: ${passwordReset.userId}`);
-    return { success: true, message: 'Password reset successfully' };
   }
 }

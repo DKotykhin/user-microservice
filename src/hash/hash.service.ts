@@ -5,7 +5,7 @@ import { AppError } from 'src/utils/errors/app-error';
 
 @Injectable()
 export class HashService {
-  private readonly index = 5;
+  private readonly index = 10;
   protected readonly logger = new Logger(HashService.name);
 
   async create(password: string): Promise<string> {

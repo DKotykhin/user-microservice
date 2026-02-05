@@ -14,6 +14,20 @@ export class EnvironmentVariables {
   @IsPositive()
   readonly HTTP_PORT: number;
 
+  @IsUrl({}, { message: 'FRONTEND_URL must be a valid URL' })
+  @IsNotEmpty()
+  readonly FRONTEND_URL: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  readonly EMAIL_TOKEN_TTL: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  readonly PASSWORD_RESET_TOKEN_TTL: number;
+
   @IsUrl(
     { protocols: ['postgres', 'postgresql'], require_tld: false, require_protocol: true },
     { message: 'DATABASE_URL must be a valid Postgres URL' },

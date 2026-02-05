@@ -45,7 +45,7 @@ export class AuthController {
 
   @GrpcMethod(AUTH_SERVICE_NAME, 'RefreshTokens')
   async refreshToken(data: Token): Promise<RefreshTokensResponse> {
-    this.logger.log(`Received RefreshToken request with token: ${data.token}`);
+    this.logger.log(`Received RefreshToken request with token: ${data.token.slice(0, 10)}...`);
     return await this.authService.refreshTokens(data.token);
   }
 
@@ -63,7 +63,17 @@ export class AuthController {
 
   @GrpcMethod(AUTH_SERVICE_NAME, 'SetNewPassword')
   async setNewPassword(data: { token: string; password: string }): Promise<StatusResponse> {
-    this.logger.log(`Received SetNewPassword request with token: ${data.token}`);
+    this.logger.log(`Received SetNewPassword request with token: ${data.token.slice(0, 10)}...`);
     return await this.authService.setNewPassword(data.token, data.password);
+  }
+
+  @GrpcMethod('AuthService', 'SignOutOtherDevices')
+  async signOutOtherDevices(data: { id: string; currentSessionId: string }): Promise<StatusResponse> {
+    return this.authService.signOutOtherDevices(data.id, data.currentSessionId);
+  }
+
+  @GrpcMethod('AuthService', 'SignOutAllDevices')
+  async signOutAllDevices(data: { id: string }): Promise<StatusResponse> {
+    return this.authService.signOutAllDevices(data.id);
   }
 }

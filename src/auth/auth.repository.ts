@@ -73,6 +73,22 @@ export class AuthRepository {
     });
   }
 
+  // Find password reset token by token string
+  async findPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | null> {
+    this.logger.log(`Finding password reset token: ${token}`);
+    return await this.prisma.passwordResetToken.findFirst({
+      where: { token },
+    });
+  }
+
+  // Find password reset token by user ID
+  async findPasswordResetTokenByUserId(userId: string): Promise<PasswordResetToken | null> {
+    this.logger.log(`Finding password reset token for user ID: ${userId}`);
+    return await this.prisma.passwordResetToken.findFirst({
+      where: { userId },
+    });
+  }
+
   // create password reset token
   async createPasswordResetToken({
     userId,
@@ -90,14 +106,6 @@ export class AuthRepository {
         token,
         expiresAt,
       },
-    });
-  }
-
-  // Find password reset token by token string
-  async findPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | null> {
-    this.logger.log(`Finding password reset token: ${token}`);
-    return await this.prisma.passwordResetToken.findFirst({
-      where: { token },
     });
   }
 

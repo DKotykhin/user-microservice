@@ -22,6 +22,10 @@ service AuthService {
   rpc ResendResetPasswordEmail(Email) returns (user.v1.StatusResponse) {}
   // rpc to set new password
   rpc SetNewPassword(SetNewPasswordRequest) returns (user.v1.StatusResponse) {}
+  // rpc to sign out a user from other devices
+  rpc SignOutOtherDevices(SignOutOtherDevicesRequest) returns (user.v1.StatusResponse) {}
+  // rpc to sign out a user from all devices
+  rpc SignOutAllDevices(user.v1.Id) returns (user.v1.StatusResponse) {}
 }
 
 // Message for sign up request
@@ -36,6 +40,13 @@ message SignUpRequest {
 message SignInRequest {
   string email = 1;
   string password = 2;
+  optional ClientInfo client_info = 3;
+}
+
+// Message for client information (used in sign in)
+message ClientInfo {
+  optional string ip_address = 1;
+  optional string user_agent = 2;
 }
 
 // Message for sigh in / verify email response containing tokens
@@ -65,6 +76,12 @@ message Email {
 message SetNewPasswordRequest {
   string token = 1;
   string password = 2;
+}
+
+// Message for signing out from other devices
+message SignOutOtherDevicesRequest {
+  string user_id = 1;
+  string current_session_id = 2;
 }
 
 // Command to generate TypeScript code with NestJS options, using null for optional fields and Date for timestamps

@@ -33,6 +33,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^11.1.11",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/throttler": "^6.5.0",
     "@opentelemetry/auto-instrumentations-node": "^0.69.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.211.0",
     "@opentelemetry/resources": "^2.5.0",
