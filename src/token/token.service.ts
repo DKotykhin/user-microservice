@@ -9,13 +9,13 @@ import type { RefreshTokensResponse } from 'src/generated-types/auth';
 
 @Injectable()
 export class TokenService {
+  private readonly logger = new Logger(TokenService.name);
   constructor(
     private readonly hashService: HashService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {}
-  protected readonly logger = new Logger(TokenService.name);
 
   public refreshKey(userId: string, sessionId: string) {
     return `refresh:${userId}:${sessionId}`;

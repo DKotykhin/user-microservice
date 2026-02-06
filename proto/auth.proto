@@ -11,7 +11,7 @@ service AuthService {
   // rpc to sign in a user
   rpc SignIn(SignInRequest) returns (AuthResponse) {}
   // rpc to verify email
-  rpc VerifyEmail(Token) returns (AuthResponse) {}
+  rpc VerifyEmail(VerifyEmailRequest) returns (AuthResponse) {}
   // rpc to resend confirmation email
   rpc ResendConfirmationEmail(Email) returns (user.v1.StatusResponse) {}
   // rpc to refresh tokens
@@ -22,8 +22,10 @@ service AuthService {
   rpc ResendResetPasswordEmail(Email) returns (user.v1.StatusResponse) {}
   // rpc to set new password
   rpc SetNewPassword(SetNewPasswordRequest) returns (user.v1.StatusResponse) {}
+  // rpc to sign out a user from current device
+  rpc SignOutCurrentDevice(SignOutRequest) returns (user.v1.StatusResponse) {}
   // rpc to sign out a user from other devices
-  rpc SignOutOtherDevices(SignOutOtherDevicesRequest) returns (user.v1.StatusResponse) {}
+  rpc SignOutOtherDevices(SignOutRequest) returns (user.v1.StatusResponse) {}
   // rpc to sign out a user from all devices
   rpc SignOutAllDevices(user.v1.Id) returns (user.v1.StatusResponse) {}
 }
@@ -47,6 +49,12 @@ message SignInRequest {
 message ClientInfo {
   optional string ip_address = 1;
   optional string user_agent = 2;
+}
+
+// Message for verify email request
+message VerifyEmailRequest {
+  string token = 1;
+  optional ClientInfo client_info = 2;
 }
 
 // Message for sigh in / verify email response containing tokens
@@ -79,7 +87,7 @@ message SetNewPasswordRequest {
 }
 
 // Message for signing out from other devices
-message SignOutOtherDevicesRequest {
+message SignOutRequest {
   string user_id = 1;
   string current_session_id = 2;
 }

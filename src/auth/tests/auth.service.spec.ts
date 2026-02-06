@@ -31,7 +31,7 @@ describe('AuthService', () => {
   const hashServiceMock = {
     create: jest.fn(),
     compare: jest.fn(),
-    same: jest.fn(),
+    theSame: jest.fn(),
     validate: jest.fn(),
   };
 
@@ -63,7 +63,7 @@ describe('AuthService', () => {
     get: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
-    keys: jest.fn(),
+    scan: jest.fn(),
   };
 
   const messageBrokerServiceMock = {
@@ -71,6 +71,14 @@ describe('AuthService', () => {
   };
 
   const configServiceMock = {
+    get: jest.fn((key: string) => {
+      const config: Record<string, string | number> = {
+        FRONTEND_URL: 'http://localhost:3000',
+        EMAIL_TOKEN_TTL: 3600,
+        PASSWORD_RESET_TOKEN_TTL: 3600,
+      };
+      return config[key];
+    }),
     getOrThrow: jest.fn((key: string) => {
       const config: Record<string, string | number> = {
         FRONTEND_URL: 'http://localhost:3000',
@@ -342,7 +350,7 @@ describe('AuthService', () => {
       });
       userRepositoryMock.updateUser.mockResolvedValue({ ...mockUnverifiedUser, isEmailVerified: true });
 
-      const result = await service.verifyEmail('verification-token');
+      const result = await service.verifyEmail({ token: 'verification-token' });
 
       expect(authRepositoryMock.findEmailVerificationTokenByToken).toHaveBeenCalledWith('verification-token');
       expect(authRepositoryMock.updateEmailVerificationToken).toHaveBeenCalledWith({
@@ -365,7 +373,7 @@ describe('AuthService', () => {
     it('should throw error for invalid token', async () => {
       authRepositoryMock.findEmailVerificationTokenByToken.mockResolvedValue(null);
 
-      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(AppError);
+      await expect(service.verifyEmail({ token: 'invalid-token' })).rejects.toThrow(AppError);
     });
 
     it('should throw error for expired token', async () => {
@@ -374,7 +382,7 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 3600000),
       });
 
-      await expect(service.verifyEmail('expired-token')).rejects.toThrow(AppError);
+      await expect(service.verifyEmail({ token: 'expired-token' })).rejects.toThrow(AppError);
     });
 
     it('should throw error if email is already verified', async () => {
@@ -383,13 +391,13 @@ describe('AuthService', () => {
         verifiedAt: new Date(),
       });
 
-      await expect(service.verifyEmail('already-verified-token')).rejects.toThrow(AppError);
+      await expect(service.verifyEmail({ token: 'already-verified-token' })).rejects.toThrow(AppError);
     });
 
     it('should throw internal server error for unexpected errors', async () => {
       authRepositoryMock.findEmailVerificationTokenByToken.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.verifyEmail('some-token')).rejects.toThrow(AppError);
+      await expect(service.verifyEmail({ token: 'some-token' })).rejects.toThrow(AppError);
     });
   });
 
@@ -837,18 +845,18 @@ describe('AuthService', () => {
     it('should set new password, invalidate tokens, remove devices, and send confirmation email', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
       userRepositoryMock.findUserById.mockResolvedValue(mockUser);
-      hashServiceMock.same.mockResolvedValue(false);
+      hashServiceMock.theSame.mockResolvedValue(false);
       hashServiceMock.create.mockResolvedValue('new-hashed-password');
       userRepositoryMock.updateUser.mockResolvedValue(mockUser);
       authRepositoryMock.updatePasswordResetTokenById.mockResolvedValue({});
-      redisServiceMock.keys.mockResolvedValue(['refresh:user-123:session-1', 'refresh:user-123:session-2']);
+      redisServiceMock.scan.mockResolvedValue(['0', ['refresh:user-123:session-1', 'refresh:user-123:session-2']]);
       redisServiceMock.del.mockResolvedValue(2);
 
-      const result = await service.setNewPassword('reset-token', 'new-password');
+      const result = await service.setNewPassword({ token: 'reset-token', password: 'new-password' });
 
       expect(authRepositoryMock.findPasswordResetTokenByToken).toHaveBeenCalledWith('reset-token');
       expect(userRepositoryMock.findUserById).toHaveBeenCalledWith(mockPasswordResetToken.userId);
-      expect(hashServiceMock.same).toHaveBeenCalledWith('new-password', mockUser.passwordHash);
+      expect(hashServiceMock.theSame).toHaveBeenCalledWith('new-password', mockUser.passwordHash);
       expect(hashServiceMock.create).toHaveBeenCalledWith('new-password');
       expect(userRepositoryMock.updateUser).toHaveBeenCalledWith({
         id: mockPasswordResetToken.userId,
@@ -859,7 +867,13 @@ describe('AuthService', () => {
         token: '',
         changedAt: expect.any(Date) as unknown as Date,
       });
-      expect(redisServiceMock.keys).toHaveBeenCalledWith(`refresh:${mockPasswordResetToken.userId}:*`);
+      expect(redisServiceMock.scan).toHaveBeenCalledWith(
+        '0',
+        'MATCH',
+        `refresh:${mockPasswordResetToken.userId}:*`,
+        'COUNT',
+        100,
+      );
       expect(redisServiceMock.del).toHaveBeenCalledWith('refresh:user-123:session-1', 'refresh:user-123:session-2');
       expect(deviceServiceMock.removeAllDevices).toHaveBeenCalledWith(mockPasswordResetToken.userId);
       expect(rateLimiterServiceMock.resetRateLimit).toHaveBeenCalledWith('password_reset', mockUser.email);
@@ -877,13 +891,13 @@ describe('AuthService', () => {
     it('should skip redis del if no refresh tokens exist', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
       userRepositoryMock.findUserById.mockResolvedValue(mockUser);
-      hashServiceMock.same.mockResolvedValue(false);
+      hashServiceMock.theSame.mockResolvedValue(false);
       hashServiceMock.create.mockResolvedValue('new-hashed-password');
       userRepositoryMock.updateUser.mockResolvedValue(mockUser);
       authRepositoryMock.updatePasswordResetTokenById.mockResolvedValue({});
-      redisServiceMock.keys.mockResolvedValue([]);
+      redisServiceMock.scan.mockResolvedValue(['0', []]);
 
-      const result = await service.setNewPassword('reset-token', 'new-password');
+      const result = await service.setNewPassword({ token: 'reset-token', password: 'new-password' });
 
       expect(redisServiceMock.del).not.toHaveBeenCalledWith(expect.stringContaining('refresh:'));
       expect(result).toEqual({ success: true, message: 'Password reset successfully' });
@@ -892,7 +906,9 @@ describe('AuthService', () => {
     it('should throw error for invalid token', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(null);
 
-      await expect(service.setNewPassword('invalid-token', 'new-password')).rejects.toThrow(AppError);
+      await expect(service.setNewPassword({ token: 'invalid-token', password: 'new-password' })).rejects.toThrow(
+        AppError,
+      );
     });
 
     it('should throw error for expired token', async () => {
@@ -901,37 +917,42 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 3600000),
       });
 
-      await expect(service.setNewPassword('expired-token', 'new-password')).rejects.toThrow(AppError);
+      await expect(service.setNewPassword({ token: 'expired-token', password: 'new-password' })).rejects.toThrow(
+        AppError,
+      );
     });
 
     it('should throw error if user not found', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
       userRepositoryMock.findUserById.mockResolvedValue(null);
 
-      await expect(service.setNewPassword('reset-token', 'new-password')).rejects.toThrow(AppError);
+      await expect(service.setNewPassword({ token: 'reset-token', password: 'new-password' })).rejects.toThrow(
+        AppError,
+      );
     });
 
     it('should throw error if new password is same as old password', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
       userRepositoryMock.findUserById.mockResolvedValue(mockUser);
-      hashServiceMock.same.mockRejectedValue(AppError.badRequest('Password cannot be the same as the old one'));
+      hashServiceMock.theSame.mockRejectedValue(AppError.badRequest('Password cannot be the same as the old one'));
 
-      await expect(service.setNewPassword('reset-token', 'same-password')).rejects.toThrow(AppError);
+      await expect(service.setNewPassword({ token: 'reset-token', password: 'same-password' })).rejects.toThrow(
+        AppError,
+      );
     });
   });
 
   describe('signOutOtherDevices', () => {
     it('should invalidate all sessions except the current one', async () => {
-      redisServiceMock.keys.mockResolvedValue([
-        'refresh:user-123:session-1',
-        'refresh:user-123:session-2',
-        'refresh:user-123:current-session',
+      redisServiceMock.scan.mockResolvedValue([
+        '0',
+        ['refresh:user-123:session-1', 'refresh:user-123:session-2', 'refresh:user-123:current-session'],
       ]);
       redisServiceMock.del.mockResolvedValue(2);
 
-      const result = await service.signOutOtherDevices('user-123', 'current-session');
+      const result = await service.signOutOtherDevices({ userId: 'user-123', currentSessionId: 'current-session' });
 
-      expect(redisServiceMock.keys).toHaveBeenCalledWith('refresh:user-123:*');
+      expect(redisServiceMock.scan).toHaveBeenCalledWith('0', 'MATCH', 'refresh:user-123:*', 'COUNT', 100);
       expect(redisServiceMock.del).toHaveBeenCalledWith('refresh:user-123:session-1', 'refresh:user-123:session-2');
       expect(result).toEqual({
         success: true,
@@ -940,9 +961,9 @@ describe('AuthService', () => {
     });
 
     it('should return success with 0 devices if only current session exists', async () => {
-      redisServiceMock.keys.mockResolvedValue(['refresh:user-123:current-session']);
+      redisServiceMock.scan.mockResolvedValue(['0', ['refresh:user-123:current-session']]);
 
-      const result = await service.signOutOtherDevices('user-123', 'current-session');
+      const result = await service.signOutOtherDevices({ userId: 'user-123', currentSessionId: 'current-session' });
 
       expect(redisServiceMock.del).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -952,9 +973,9 @@ describe('AuthService', () => {
     });
 
     it('should return success with 0 devices if no sessions exist', async () => {
-      redisServiceMock.keys.mockResolvedValue([]);
+      redisServiceMock.scan.mockResolvedValue(['0', []]);
 
-      const result = await service.signOutOtherDevices('user-123', 'current-session');
+      const result = await service.signOutOtherDevices({ userId: 'user-123', currentSessionId: 'current-session' });
 
       expect(result).toEqual({
         success: true,
@@ -963,24 +984,25 @@ describe('AuthService', () => {
     });
 
     it('should throw internal server error for unexpected errors', async () => {
-      redisServiceMock.keys.mockRejectedValue(new Error('Redis error'));
+      redisServiceMock.scan.mockRejectedValue(new Error('Redis error'));
 
-      await expect(service.signOutOtherDevices('user-123', 'current-session')).rejects.toThrow(AppError);
+      await expect(
+        service.signOutOtherDevices({ userId: 'user-123', currentSessionId: 'current-session' }),
+      ).rejects.toThrow(AppError);
     });
   });
 
   describe('signOutAllDevices', () => {
     it('should invalidate all sessions for the user', async () => {
-      redisServiceMock.keys.mockResolvedValue([
-        'refresh:user-123:session-1',
-        'refresh:user-123:session-2',
-        'refresh:user-123:session-3',
+      redisServiceMock.scan.mockResolvedValue([
+        '0',
+        ['refresh:user-123:session-1', 'refresh:user-123:session-2', 'refresh:user-123:session-3'],
       ]);
       redisServiceMock.del.mockResolvedValue(3);
 
       const result = await service.signOutAllDevices('user-123');
 
-      expect(redisServiceMock.keys).toHaveBeenCalledWith('refresh:user-123:*');
+      expect(redisServiceMock.scan).toHaveBeenCalledWith('0', 'MATCH', 'refresh:user-123:*', 'COUNT', 100);
       expect(redisServiceMock.del).toHaveBeenCalledWith(
         'refresh:user-123:session-1',
         'refresh:user-123:session-2',
@@ -993,7 +1015,7 @@ describe('AuthService', () => {
     });
 
     it('should return success with 0 devices if no sessions exist', async () => {
-      redisServiceMock.keys.mockResolvedValue([]);
+      redisServiceMock.scan.mockResolvedValue(['0', []]);
 
       const result = await service.signOutAllDevices('user-123');
 
@@ -1005,7 +1027,7 @@ describe('AuthService', () => {
     });
 
     it('should throw internal server error for unexpected errors', async () => {
-      redisServiceMock.keys.mockRejectedValue(new Error('Redis error'));
+      redisServiceMock.scan.mockRejectedValue(new Error('Redis error'));
 
       await expect(service.signOutAllDevices('user-123')).rejects.toThrow(AppError);
     });

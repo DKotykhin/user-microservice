@@ -3,8 +3,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class HealthCheckService {
+  private readonly logger = new Logger(HealthCheckService.name);
   constructor(private readonly prisma: PrismaService) {}
-  protected readonly logger = new Logger(HealthCheckService.name);
 
   async checkDatabaseConnection(): Promise<boolean> {
     this.logger.log('Checking database connection...');

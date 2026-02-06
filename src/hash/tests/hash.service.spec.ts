@@ -70,13 +70,13 @@ describe('HashService', () => {
     it('should throw error if passwords are the same', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(service.same('password', 'hash')).rejects.toBeInstanceOf(AppError);
+      await expect(service.theSame('password', 'hash')).rejects.toBeInstanceOf(AppError);
     });
 
     it('should return false if passwords are different', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      const result = await service.same('password', 'hash');
+      const result = await service.theSame('password', 'hash');
 
       expect(bcrypt.compare).toHaveBeenCalledWith('password', 'hash');
       expect(result).toBe(false);

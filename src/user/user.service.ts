@@ -23,12 +23,12 @@ import type { EmailRequest } from 'src/transport/message-broker/email.request.in
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   constructor(
     private readonly hashService: HashService,
     private readonly userRepository: UserRepository,
     private readonly messageBrokerService: MessageBrokerService,
   ) {}
-  protected readonly logger = new Logger(UserService.name);
 
   private sendBanNotificationEmail(to: string, name?: string | null, reason?: string): void {
     this.messageBrokerService.emitMessage('notification.email.send', {
@@ -159,7 +159,7 @@ export class UserService {
         this.logger.warn(`User not found with ID: ${data.id}`);
         throw AppError.notFound('User not found');
       }
-      await this.hashService.same(data.password, user.passwordHash);
+      await this.hashService.theSame(data.password, user.passwordHash);
 
       const newPasswordHash = await this.hashService.create(data.password);
       await this.userRepository.updateUser({ id: data.id, data: { passwordHash: newPasswordHash } });

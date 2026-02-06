@@ -8,7 +8,7 @@ import { HealthCheckService } from './health-check.service';
 @Controller()
 @UseInterceptors(GrpcMetricsInterceptor)
 export class HealthCheckController {
-  protected readonly logger = new Logger(HealthCheckController.name);
+  private readonly logger = new Logger(HealthCheckController.name);
   constructor(private readonly healthCheckService: HealthCheckService) {}
 
   @GrpcMethod(HEALTH_CHECK_SERVICE_NAME, 'CheckAppHealth')

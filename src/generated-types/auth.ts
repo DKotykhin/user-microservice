@@ -32,6 +32,12 @@ export interface ClientInfo {
   userAgent?: string | null | undefined;
 }
 
+/** Message for verify email request */
+export interface VerifyEmailRequest {
+  token: string;
+  clientInfo?: ClientInfo | null | undefined;
+}
+
 /** Message for sigh in / verify email response containing tokens */
 export interface AuthResponse {
   accessToken: string;
@@ -62,7 +68,7 @@ export interface SetNewPasswordRequest {
 }
 
 /** Message for signing out from other devices */
-export interface SignOutOtherDevicesRequest {
+export interface SignOutRequest {
   userId: string;
   currentSessionId: string;
 }
@@ -82,7 +88,7 @@ export interface AuthServiceClient {
 
   /** rpc to verify email */
 
-  verifyEmail(request: Token): Observable<AuthResponse>;
+  verifyEmail(request: VerifyEmailRequest): Observable<AuthResponse>;
 
   /** rpc to resend confirmation email */
 
@@ -104,9 +110,13 @@ export interface AuthServiceClient {
 
   setNewPassword(request: SetNewPasswordRequest): Observable<StatusResponse>;
 
+  /** rpc to sign out a user from current device */
+
+  signOutCurrentDevice(request: SignOutRequest): Observable<StatusResponse>;
+
   /** rpc to sign out a user from other devices */
 
-  signOutOtherDevices(request: SignOutOtherDevicesRequest): Observable<StatusResponse>;
+  signOutOtherDevices(request: SignOutRequest): Observable<StatusResponse>;
 
   /** rpc to sign out a user from all devices */
 
@@ -126,7 +136,7 @@ export interface AuthServiceController {
 
   /** rpc to verify email */
 
-  verifyEmail(request: Token): Promise<AuthResponse> | Observable<AuthResponse> | AuthResponse;
+  verifyEmail(request: VerifyEmailRequest): Promise<AuthResponse> | Observable<AuthResponse> | AuthResponse;
 
   /** rpc to resend confirmation email */
 
@@ -150,11 +160,13 @@ export interface AuthServiceController {
 
   setNewPassword(request: SetNewPasswordRequest): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
 
+  /** rpc to sign out a user from current device */
+
+  signOutCurrentDevice(request: SignOutRequest): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
+
   /** rpc to sign out a user from other devices */
 
-  signOutOtherDevices(
-    request: SignOutOtherDevicesRequest,
-  ): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
+  signOutOtherDevices(request: SignOutRequest): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
 
   /** rpc to sign out a user from all devices */
 
@@ -172,6 +184,7 @@ export function AuthServiceControllerMethods() {
       "initResetPassword",
       "resendResetPasswordEmail",
       "setNewPassword",
+      "signOutCurrentDevice",
       "signOutOtherDevices",
       "signOutAllDevices",
     ];

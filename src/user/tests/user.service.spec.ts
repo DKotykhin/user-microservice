@@ -21,7 +21,7 @@ describe('UserService', () => {
 
   const hashServiceMock = {
     compare: jest.fn(),
-    same: jest.fn(),
+    theSame: jest.fn(),
     create: jest.fn(),
   };
 
@@ -219,7 +219,7 @@ describe('UserService', () => {
     it('should change password', async () => {
       userRepositoryMock.findUserById.mockResolvedValue(baseUser);
 
-      hashServiceMock.same.mockResolvedValue(false);
+      hashServiceMock.theSame.mockResolvedValue(false);
       hashServiceMock.create.mockResolvedValue('new-hash');
 
       userRepositoryMock.updateUser.mockResolvedValue({
@@ -232,7 +232,7 @@ describe('UserService', () => {
         password: 'new-password',
       });
 
-      expect(hashServiceMock.same).toHaveBeenCalledWith('new-password', baseUser.passwordHash);
+      expect(hashServiceMock.theSame).toHaveBeenCalledWith('new-password', baseUser.passwordHash);
 
       expect(hashServiceMock.create).toHaveBeenCalledWith('new-password');
 
@@ -250,7 +250,7 @@ describe('UserService', () => {
     it('should throw if new password is same as old password', async () => {
       userRepositoryMock.findUserById.mockResolvedValue(baseUser);
 
-      hashServiceMock.same.mockRejectedValue(AppError.badRequest('New password must be different from the old one'));
+      hashServiceMock.theSame.mockRejectedValue(AppError.badRequest('New password must be different from the old one'));
 
       await expect(
         service.changePassword({
@@ -270,7 +270,7 @@ describe('UserService', () => {
 
     it('should throw internal server error on repository failure', async () => {
       userRepositoryMock.findUserById.mockResolvedValue(baseUser);
-      hashServiceMock.same.mockResolvedValue(false);
+      hashServiceMock.theSame.mockResolvedValue(false);
       hashServiceMock.create.mockResolvedValue('new-hash');
       userRepositoryMock.updateUser.mockRejectedValue(new Error('DB error'));
 

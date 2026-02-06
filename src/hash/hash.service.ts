@@ -6,7 +6,7 @@ import { AppError } from 'src/utils/errors/app-error';
 @Injectable()
 export class HashService {
   private readonly index = 10;
-  protected readonly logger = new Logger(HashService.name);
+  private readonly logger = new Logger(HashService.name);
 
   async create(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(this.index);
@@ -22,7 +22,7 @@ export class HashService {
     return await bcrypt.compare(password, passwordHash);
   }
 
-  async same(password: string, passwordHash: string): Promise<boolean> {
+  async theSame(password: string, passwordHash: string): Promise<boolean> {
     const isSame = await bcrypt.compare(password, passwordHash);
     if (isSame) {
       this.logger.warn('New password must be different from the old one');

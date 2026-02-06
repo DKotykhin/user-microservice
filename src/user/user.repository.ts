@@ -7,8 +7,8 @@ import type { AllUsersRequest, PaginationMeta } from 'src/generated-types/user';
 
 @Injectable()
 export class UserRepository {
+  private readonly logger = new Logger(UserRepository.name);
   constructor(private readonly prisma: PrismaService) {}
-  protected readonly logger = new Logger(UserRepository.name);
 
   // find user by email
   async findUserByEmail(email: string): Promise<User | null> {

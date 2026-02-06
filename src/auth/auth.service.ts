@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { UAParser } from 'ua-parser-js';
+import * as crypto from 'crypto';
 import * as geoip from 'geoip-lite';
 
 import { HashService } from 'src/hash/hash.service';
@@ -16,12 +16,20 @@ import { DeviceService } from 'src/device/device.service';
 import { AuthRepository } from './auth.repository';
 
 import { type StatusResponse, UserRole, type User } from 'src/generated-types/user';
-import type { AuthResponse, RefreshTokensResponse, SignInRequest, SignUpRequest } from 'src/generated-types/auth';
+import type {
+  AuthResponse,
+  RefreshTokensResponse,
+  SetNewPasswordRequest,
+  SignInRequest,
+  SignOutRequest,
+  SignUpRequest,
+  VerifyEmailRequest,
+} from 'src/generated-types/auth';
 import type { EmailRequest } from 'src/transport/message-broker/email.request.interface';
 
 @Injectable()
 export class AuthService {
-  protected readonly logger = new Logger(AuthService.name);
+  private readonly logger = new Logger(AuthService.name);
   private readonly FRONTEND_URL: string;
   private readonly EMAIL_TOKEN_TTL: number;
   private readonly PASSWORD_RESET_TOKEN_TTL: number;
@@ -53,12 +61,23 @@ export class AuthService {
     private readonly deviceService: DeviceService,
   ) {
     this.FRONTEND_URL = this.configService.getOrThrow<string>('FRONTEND_URL');
-    this.EMAIL_TOKEN_TTL = this.configService.getOrThrow<number>('EMAIL_TOKEN_TTL') || 3600; // default to 1 hour
-    this.PASSWORD_RESET_TOKEN_TTL = this.configService.getOrThrow<number>('PASSWORD_RESET_TOKEN_TTL') || 3600; // default to 1 hour
+    this.EMAIL_TOKEN_TTL = this.configService.get<number>('EMAIL_TOKEN_TTL') || 3600; // default to 1 hour
+    this.PASSWORD_RESET_TOKEN_TTL = this.configService.get<number>('PASSWORD_RESET_TOKEN_TTL') || 3600; // default to 1 hour
   }
 
   private generateCryptoToken(): string {
     return crypto.randomBytes(32).toString('hex');
+  }
+
+  private async scanRedisKeys(pattern: string): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = '0';
+    do {
+      const [nextCursor, batch] = await this.redisService.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+      keys.push(...batch);
+    } while (cursor !== '0');
+    return keys;
   }
 
   private sendVerificationEmail(to: string, token: string, name?: string | null): void {
@@ -133,12 +152,13 @@ export class AuthService {
   }
 
   async signUp(data: SignUpRequest): Promise<User> {
-    this.logger.log(`Signing up user with email: ${data.email}`);
+    const normalizedData = { ...data, email: data.email.toLowerCase() };
+    this.logger.log(`Signing up user with email: ${normalizedData.email}`);
     try {
       // Check if user with the email already exists
-      const existingUser = await this.userRepository.findUserByEmail(data.email);
+      const existingUser = await this.userRepository.findUserByEmail(normalizedData.email);
       if (existingUser?.isEmailVerified) {
-        this.logger.warn(`Email is already in use: ${data.email}`);
+        this.logger.warn(`Email is already in use: ${normalizedData.email}`);
         throw AppError.conflict('Email is already in use');
       }
       if (existingUser) {
@@ -164,17 +184,17 @@ export class AuthService {
           this.sendVerificationEmail(existingUser.email, token, existingUser.name);
           this.logger.log(`Resent expired email verification token for user ID: ${existingUser.id}`);
         }
-        this.logger.warn(`Email is already in use: ${data.email}`);
+        this.logger.warn(`Email is already in use: ${normalizedData.email}`);
         throw AppError.conflict(
           'Email is already in use but not verified. Please check your email for verification link.',
         );
       }
 
       // Create new user
-      const passwordHash = await this.hashService.create(data.password);
-      const newUser = await this.userRepository.createUser({ data, passwordHash });
+      const passwordHash = await this.hashService.create(normalizedData.password);
+      const newUser = await this.userRepository.createUser({ data: normalizedData, passwordHash });
       if (!newUser) {
-        this.logger.error(`Failed to create user with email: ${data.email}`);
+        this.logger.error(`Failed to create user with email: ${normalizedData.email}`);
         throw AppError.internalServerError('Failed to create user');
       }
 
@@ -201,7 +221,8 @@ export class AuthService {
     }
   }
 
-  async resendConfirmationEmail(email: string): Promise<StatusResponse> {
+  async resendConfirmationEmail(rawEmail: string): Promise<StatusResponse> {
+    const email = rawEmail.toLowerCase();
     this.logger.log(`Resending confirmation email to: ${email}`);
     try {
       // Check rate limit for resending confirmation email
@@ -246,7 +267,8 @@ export class AuthService {
     }
   }
 
-  async verifyEmail(token: string): Promise<AuthResponse> {
+  async verifyEmail(data: VerifyEmailRequest): Promise<AuthResponse> {
+    const { token, clientInfo } = data;
     this.logger.log(`Verifying email with token: ${token.slice(0, 8)}...`);
     try {
       // Find the email verification record
@@ -285,6 +307,18 @@ export class AuthService {
         data: { isEmailVerified: true },
       });
 
+      // Register device so first signIn doesn't trigger a "new device" notification
+      if (clientInfo?.ipAddress && clientInfo?.userAgent) {
+        const deviceId = this.deviceService.generateDeviceId(clientInfo.ipAddress, clientInfo.userAgent);
+        const result = new UAParser(clientInfo.userAgent).getResult();
+        await this.deviceService.registerDevice(emailVerification.userId, {
+          deviceId,
+          ipAddress: clientInfo.ipAddress,
+          userAgent: result.ua,
+        });
+        this.logger.log(`Device registered during email verification for user ${emailVerification.userId}`);
+      }
+
       this.logger.log(`Email verified for user ID: ${emailVerification.userId}`);
       return {
         accessToken,
@@ -302,19 +336,19 @@ export class AuthService {
   }
 
   async signIn(data: SignInRequest): Promise<AuthResponse> {
-    this.logger.log(`Signing in user with email: ${data.email}`);
     const email = data.email.toLowerCase();
+    this.logger.log(`Signing in user with email: ${email}`);
 
     try {
       // Check if account is locked (does NOT increment counter)
       await this.rateLimiterService.checkLockout('sign_in', email);
 
-      // Find the user by email
-      const user = await this.userRepository.findUserByEmail(data.email);
+      // Find the user by email (use lowercased email consistently)
+      const user = await this.userRepository.findUserByEmail(email);
       if (!user) {
         // Record failed attempt even for non-existent users (prevents user enumeration timing attacks)
         await this.rateLimiterService.recordFailedAttempt('sign_in', email, this.LOGIN_RATE_LIMIT);
-        this.logger.warn(`User not found with email: ${data.email}`);
+        this.logger.warn(`User not found with email: ${email}`);
         throw AppError.unauthorized('Invalid email or password');
       }
 
@@ -348,7 +382,7 @@ export class AuthService {
           this.logger.log(`Resent expired email verification token for user ID: ${user.id}`);
           throw AppError.unauthorized('Email not verified. Verification email resent.');
         }
-        this.logger.warn(`Email not verified for user with email: ${data.email}`);
+        this.logger.warn(`Email not verified for user with email: ${email}`);
         throw AppError.unauthorized('Email not verified. Please check your email for verification link.');
       }
 
@@ -371,7 +405,7 @@ export class AuthService {
           );
         }
 
-        this.logger.warn(`Invalid password for user with email: ${data.email}`);
+        this.logger.warn(`Invalid password for user with email: ${email}`);
         throw AppError.unauthorized(
           `Invalid email or password. ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining.`,
         );
@@ -471,6 +505,13 @@ export class AuthService {
         throw AppError.unauthorized('Invalid token');
       }
 
+      // Check if user is banned
+      if (user.isBanned) {
+        await this.redisService.del(key);
+        this.logger.warn(`User is banned with ID: ${user.id}`);
+        throw AppError.forbidden('User is banned');
+      }
+
       // Verify the refresh token hash
       const isValid = await this.hashService.validate(token, storedHash);
 
@@ -502,7 +543,8 @@ export class AuthService {
     }
   }
 
-  async initResetPassword(email: string): Promise<StatusResponse> {
+  async initResetPassword(rawEmail: string): Promise<StatusResponse> {
+    const email = rawEmail.toLowerCase();
     this.logger.log(`Initiating password reset for email: ${email}`);
     try {
       // Check rate limit for password reset initiation
@@ -556,36 +598,54 @@ export class AuthService {
     }
   }
 
-  async resendResetPasswordEmail(email: string): Promise<StatusResponse> {
+  async resendResetPasswordEmail(rawEmail: string): Promise<StatusResponse> {
+    const email = rawEmail.toLowerCase();
     this.logger.log(`Resending password reset email to: ${email}`);
-    // Check rate limit for resending password reset email
-    await this.rateLimiterService.checkRateLimit('password_reset_resend', email, this.EMAIL_RESEND_RATE_LIMIT);
+    try {
+      // Check rate limit for resending password reset email
+      await this.rateLimiterService.checkRateLimit('password_reset_resend', email, this.EMAIL_RESEND_RATE_LIMIT);
 
-    const user = await this.userRepository.findUserByEmail(email);
-    if (!user) {
-      this.logger.warn(`User not found with email: ${email}`);
-      throw AppError.badRequest('User with the provided email does not exist');
+      const user = await this.userRepository.findUserByEmail(email);
+      if (!user) {
+        this.logger.warn(`User not found with email: ${email}`);
+        throw AppError.badRequest('User with the provided email does not exist');
+      }
+      if (!user.isEmailVerified) {
+        this.logger.warn(`Email not verified for user with email: ${email}`);
+        throw AppError.badRequest('Email is not verified');
+      }
+
+      // Find existing password reset token
+      const passwordReset = await this.authRepository.findPasswordResetTokenByUserId(user.id);
+      if (!passwordReset || passwordReset.expiresAt <= new Date()) {
+        this.logger.warn(`No valid password reset token found for user ID: ${user.id}`);
+        throw AppError.badRequest('No valid password reset token found. Please initiate password reset again.');
+      }
+
+      // Generate a fresh token to invalidate any previously intercepted token
+      const newToken = this.generateCryptoToken();
+      await this.authRepository.updatePasswordResetTokenById({
+        id: passwordReset.id,
+        token: newToken,
+        expiresAt: new Date(Date.now() + this.PASSWORD_RESET_TOKEN_TTL * 1000),
+      });
+
+      // Send password reset email with the new token
+      this.sendPasswordResetEmail(user.email, newToken, user.name);
+      this.logger.log(`Password reset email resent with new token to user ID: ${user.id}`);
+
+      return { success: true, message: 'Password reset email resent successfully' };
+    } catch (error) {
+      this.logger.error(
+        `Error during resending password reset email: ${error instanceof Error ? error.message : error}`,
+      );
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to resend password reset email');
     }
-    if (!user.isEmailVerified) {
-      this.logger.warn(`Email not verified for user with email: ${email}`);
-      throw AppError.badRequest('Email is not verified');
-    }
-
-    // Find existing password reset token
-    const passwordReset = await this.authRepository.findPasswordResetTokenByUserId(user.id);
-    if (!passwordReset || passwordReset.expiresAt <= new Date()) {
-      this.logger.warn(`No valid password reset token found for user ID: ${user.id}`);
-      throw AppError.badRequest('No valid password reset token found. Please initiate password reset again.');
-    }
-
-    // Resend password reset email
-    this.sendPasswordResetEmail(user.email, passwordReset.token, user.name);
-    this.logger.log(`Password reset email resent to user ID: ${user.id}`);
-
-    return { success: true, message: 'Password reset email resent successfully' };
   }
 
-  async setNewPassword(token: string, password: string): Promise<StatusResponse> {
+  async setNewPassword(data: SetNewPasswordRequest): Promise<StatusResponse> {
+    const { token, password } = data;
     this.logger.log(`Setting new password with token: ${token.slice(0, 8)}...`);
     try {
       // Find the password reset record
@@ -607,7 +667,7 @@ export class AuthService {
       }
 
       // Ensure the new password is different from the old one
-      await this.hashService.same(password, user.passwordHash);
+      await this.hashService.theSame(password, user.passwordHash);
 
       // Hash the new password
       const passwordHash = await this.hashService.create(password);
@@ -626,7 +686,7 @@ export class AuthService {
       });
 
       // Invalidate all existing refresh tokens for the user
-      const keys = await this.redisService.keys(`refresh:${passwordReset.userId}:*`);
+      const keys = await this.scanRedisKeys(`refresh:${passwordReset.userId}:*`);
       if (keys.length > 0) {
         await this.redisService.del(...keys);
         this.logger.log(`Invalidated ${keys.length} refresh tokens for user ID: ${passwordReset.userId}`);
@@ -650,19 +710,33 @@ export class AuthService {
     }
   }
 
-  async signOutOtherDevices(userId: string, currentSessionId: string): Promise<StatusResponse> {
-    this.logger.log(`Logging out user from other devices: ${userId}`);
+  async signOutCurrentDevice(data: SignOutRequest): Promise<StatusResponse> {
+    const { userId, currentSessionId } = data;
+    this.logger.log(`Logging out user from current device: ${userId}, session ID: ${currentSessionId}`);
+    try {
+      const key = `refresh:${userId}:${currentSessionId}`;
+      await this.redisService.del(key);
+      this.logger.log(`Invalidated refresh token for user ID: ${userId}, session ID: ${currentSessionId}`);
+      return { success: true, message: 'Successfully logged out from current device' };
+    } catch (error) {
+      this.logger.error(`Error during logout current device: ${error instanceof Error ? error.message : error}`);
+      throw AppError.internalServerError('Failed to logout from current device');
+    }
+  }
+
+  async signOutOtherDevices(data: SignOutRequest): Promise<StatusResponse> {
+    this.logger.log(`Logging out user from other devices: ${data.userId}`);
 
     try {
-      const keys = await this.redisService.keys(`refresh:${userId}:*`);
-      const currentKey = `refresh:${userId}:${currentSessionId}`;
+      const keys = await this.scanRedisKeys(`refresh:${data.userId}:*`);
+      const currentKey = `refresh:${data.userId}:${data.currentSessionId}`;
 
       // Filter out current session
       const keysToDelete = keys.filter((key) => key !== currentKey);
 
       if (keysToDelete.length > 0) {
         await this.redisService.del(...keysToDelete);
-        this.logger.log(`Invalidated ${keysToDelete.length} other sessions for user ID: ${userId}`);
+        this.logger.log(`Invalidated ${keysToDelete.length} other sessions for user ID: ${data.userId}`);
       }
 
       return {
@@ -680,7 +754,7 @@ export class AuthService {
 
     try {
       // Find and delete all refresh tokens for this user
-      const keys = await this.redisService.keys(`refresh:${userId}:*`);
+      const keys = await this.scanRedisKeys(`refresh:${userId}:*`);
 
       if (keys.length > 0) {
         await this.redisService.del(...keys);

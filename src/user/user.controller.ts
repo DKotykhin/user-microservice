@@ -15,8 +15,8 @@ import { UserService } from './user.service';
 @Controller('user')
 @UseInterceptors(GrpcMetricsInterceptor, BusinessMetricsInterceptor)
 export class UserController {
+  private readonly logger = new Logger(UserController.name);
   constructor(private readonly userService: UserService) {}
-  protected readonly logger = new Logger(UserController.name);
 
   @GrpcMethod(USER_SERVICE_NAME, 'GetUserById')
   async getUserById({ id }: { id: string }) {

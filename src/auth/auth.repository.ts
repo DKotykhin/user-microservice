@@ -10,8 +10,8 @@ interface EmailVerificationTokenWithUser extends EmailVerificationToken {
 
 @Injectable()
 export class AuthRepository {
+  private readonly logger = new Logger(AuthRepository.name);
   constructor(private readonly prisma: PrismaService) {}
-  protected readonly logger = new Logger(AuthRepository.name);
 
   // Find email verification token by token string
   async findEmailVerificationTokenByToken(token: string): Promise<EmailVerificationTokenWithUser | null> {

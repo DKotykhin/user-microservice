@@ -17,6 +17,7 @@ describe('AuthController', () => {
     initResetPassword: jest.fn(),
     resendResetPasswordEmail: jest.fn(),
     setNewPassword: jest.fn(),
+    signOutCurrentDevice: jest.fn(),
     signOutOtherDevices: jest.fn(),
     signOutAllDevices: jest.fn(),
   };
@@ -114,14 +115,14 @@ describe('AuthController', () => {
   });
 
   describe('verifyEmail', () => {
-    const tokenData = { token: 'verification-token' };
+    const tokenData = { token: 'verification-token', clientInfo: undefined };
 
     it('should call authService.verifyEmail and return auth response', async () => {
       authServiceMock.verifyEmail.mockResolvedValue(mockAuthResponse);
 
       const result = await controller.verifyEmail(tokenData);
 
-      expect(authServiceMock.verifyEmail).toHaveBeenCalledWith(tokenData.token);
+      expect(authServiceMock.verifyEmail).toHaveBeenCalledWith(tokenData);
       expect(result).toEqual(mockAuthResponse);
     });
 
@@ -224,10 +225,7 @@ describe('AuthController', () => {
 
       const result = await controller.setNewPassword(setNewPasswordData);
 
-      expect(authServiceMock.setNewPassword).toHaveBeenCalledWith(
-        setNewPasswordData.token,
-        setNewPasswordData.password,
-      );
+      expect(authServiceMock.setNewPassword).toHaveBeenCalledWith(setNewPasswordData);
       expect(result).toEqual(mockStatusResponse);
     });
 
@@ -239,18 +237,35 @@ describe('AuthController', () => {
     });
   });
 
+  describe('signOutCurrentDevice', () => {
+    const signOutCurrentDeviceData = { userId: 'user-123', currentSessionId: 'session-456' };
+
+    it('should call authService.signOutCurrentDevice and return status response', async () => {
+      authServiceMock.signOutCurrentDevice.mockResolvedValue(mockStatusResponse);
+
+      const result = await controller.signOutCurrentDevice(signOutCurrentDeviceData);
+
+      expect(authServiceMock.signOutCurrentDevice).toHaveBeenCalledWith(signOutCurrentDeviceData);
+      expect(result).toEqual(mockStatusResponse);
+    });
+
+    it('should propagate errors from authService.signOutCurrentDevice', async () => {
+      const error = new Error('Sign out current device failed');
+      authServiceMock.signOutCurrentDevice.mockRejectedValue(error);
+
+      await expect(controller.signOutCurrentDevice(signOutCurrentDeviceData)).rejects.toThrow(error);
+    });
+  });
+
   describe('signOutOtherDevices', () => {
-    const signOutOtherDevicesData = { id: 'user-123', currentSessionId: 'session-456' };
+    const signOutOtherDevicesData = { userId: 'user-123', currentSessionId: 'session-456' };
 
     it('should call authService.signOutOtherDevices and return status response', async () => {
       authServiceMock.signOutOtherDevices.mockResolvedValue(mockStatusResponse);
 
       const result = await controller.signOutOtherDevices(signOutOtherDevicesData);
 
-      expect(authServiceMock.signOutOtherDevices).toHaveBeenCalledWith(
-        signOutOtherDevicesData.id,
-        signOutOtherDevicesData.currentSessionId,
-      );
+      expect(authServiceMock.signOutOtherDevices).toHaveBeenCalledWith(signOutOtherDevicesData);
       expect(result).toEqual(mockStatusResponse);
     });
 
