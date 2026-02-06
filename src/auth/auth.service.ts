@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { UAParser } from 'ua-parser-js';
+import * as geoip from 'geoip-lite';
 
 import { HashService } from 'src/hash/hash.service';
 import { TokenService } from 'src/token/token.service';
@@ -123,22 +125,11 @@ export class AuthService {
       context: {
         name: name || 'User',
         ipAddress: loginInfo.ipAddress,
-        device: this.parseUserAgent(loginInfo.userAgent),
+        device: loginInfo.userAgent,
         location: loginInfo.location || 'Unknown',
         timestamp: loginInfo.timestamp.toISOString(),
       },
     } as EmailRequest);
-  }
-
-  private parseUserAgent(userAgent: string): string {
-    // Simple parsing - consider using a library like 'ua-parser-js' for production
-    if (userAgent.includes('iPhone')) return 'iPhone';
-    if (userAgent.includes('Android')) return 'Android Device';
-    if (userAgent.includes('Windows')) return 'Windows PC';
-    if (userAgent.includes('Mac')) return 'Mac';
-    if (userAgent.includes('Linux')) return 'Linux';
-    if (userAgent.includes('Postman')) return 'Postman Client';
-    return 'Unknown Device';
   }
 
   async signUp(data: SignUpRequest): Promise<User> {
@@ -394,20 +385,23 @@ export class AuthService {
       if (clientInfo?.ipAddress && clientInfo?.userAgent) {
         const deviceId = this.deviceService.generateDeviceId(clientInfo.ipAddress, clientInfo.userAgent);
         const isKnownDevice = await this.deviceService.isKnownDevice(user.id, deviceId);
+        const result = new UAParser(clientInfo.userAgent).getResult();
+        const geo = geoip.lookup(clientInfo.ipAddress);
 
         if (!isKnownDevice) {
           // New device detected - send notification email
           this.sendNewLoginNotificationEmail(user.email, user.name, {
             ipAddress: clientInfo.ipAddress,
-            userAgent: clientInfo.userAgent,
+            userAgent: result.ua,
             timestamp: new Date(),
+            location: geo ? `${geo.city}, ${geo.country}` : 'Unknown',
           });
 
           // Register the new device
           await this.deviceService.registerDevice(user.id, {
             deviceId,
             ipAddress: clientInfo.ipAddress,
-            userAgent: clientInfo.userAgent,
+            userAgent: result.ua,
           });
 
           this.logger.log(`New device login detected for user ${user.id}, notification sent`);
