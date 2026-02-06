@@ -249,6 +249,30 @@ describe('AuthRepository', () => {
     });
   });
 
+  describe('findPasswordResetTokenByUserId', () => {
+    it('should find password reset token by user ID', async () => {
+      prismaMock.passwordResetToken.findFirst.mockResolvedValue(mockPasswordResetToken);
+
+      const result = await repository.findPasswordResetTokenByUserId('user-123');
+
+      expect(prismaMock.passwordResetToken.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+      expect(result).toEqual(mockPasswordResetToken);
+    });
+
+    it('should return null if user has no password reset token', async () => {
+      prismaMock.passwordResetToken.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findPasswordResetTokenByUserId('non-existent-user');
+
+      expect(prismaMock.passwordResetToken.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'non-existent-user' },
+      });
+      expect(result).toBeNull();
+    });
+  });
+
   describe('updatePasswordResetTokenById', () => {
     it('should update password reset token with new token and expiresAt', async () => {
       const newExpiresAt = new Date(Date.now() + 7200000);

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../user.service';
 import { UserRepository } from '../user.repository';
 import { HashService } from 'src/hash/hash.service';
+import { MessageBrokerService } from 'src/transport/message-broker/message-broker.service';
 import { AppError } from 'src/utils/errors/app-error';
 import { UserRole } from 'src/generated-types/user';
 
@@ -34,12 +35,17 @@ describe('UserService', () => {
     createBanDetails: jest.fn(),
   };
 
+  const messageBrokerServiceMock = {
+    emitMessage: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: HashService, useValue: hashServiceMock },
         { provide: UserRepository, useValue: userRepositoryMock },
+        { provide: MessageBrokerService, useValue: messageBrokerServiceMock },
       ],
     }).compile();
 
@@ -273,7 +279,7 @@ describe('UserService', () => {
   });
 
   describe('banUser', () => {
-    it('should ban user', async () => {
+    it('should ban user and send notification email', async () => {
       userRepositoryMock.findUserById.mockResolvedValue(baseUser);
       userRepositoryMock.createBanDetails.mockResolvedValue({});
       userRepositoryMock.updateUser.mockResolvedValue({
@@ -287,6 +293,21 @@ describe('UserService', () => {
       });
 
       expect(result.isBanned).toBe(true);
+      expect(userRepositoryMock.createBanDetails).toHaveBeenCalledWith({
+        userId: 'user-1',
+        bannedBy: 'admin',
+        banReason: null,
+        banUntil: null,
+        isBanned: true,
+      });
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalledWith(
+        'notification.email.send',
+        expect.objectContaining({
+          to: baseUser.email,
+          subject: 'Account Banned',
+          template: 'account-banned',
+        }),
+      );
     });
 
     it('should throw not found if user does not exist', async () => {
@@ -313,7 +334,7 @@ describe('UserService', () => {
   });
 
   describe('unbanUser', () => {
-    it('should unban user', async () => {
+    it('should unban user and send notification email', async () => {
       userRepositoryMock.findUserById.mockResolvedValue({
         ...baseUser,
         isBanned: true,
@@ -330,6 +351,21 @@ describe('UserService', () => {
       });
 
       expect(result.isBanned).toBe(false);
+      expect(userRepositoryMock.createBanDetails).toHaveBeenCalledWith({
+        userId: 'user-1',
+        bannedBy: 'admin',
+        banReason: 'Unbanned',
+        banUntil: null,
+        isBanned: false,
+      });
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalledWith(
+        'notification.email.send',
+        expect.objectContaining({
+          to: baseUser.email,
+          subject: 'Account Unbanned',
+          template: 'account-unbanned',
+        }),
+      );
     });
 
     it('should throw not found if user does not exist', async () => {

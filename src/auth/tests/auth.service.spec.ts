@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 
 import { AuthService } from '../auth.service';
 import { HashService } from 'src/hash/hash.service';
@@ -7,6 +8,8 @@ import { AuthRepository } from '../auth.repository';
 import { UserRepository } from 'src/user/user.repository';
 import { RedisService } from 'src/redis/redis.service';
 import { MessageBrokerService } from 'src/transport/message-broker/message-broker.service';
+import { RateLimiterService } from 'src/rate-limiter/rate-limiter.service';
+import { DeviceService } from 'src/device/device.service';
 import { AppError } from 'src/utils/errors/app-error';
 import { UserRole } from 'src/generated-types/user';
 
@@ -15,6 +18,11 @@ jest.mock('crypto', () => ({
     toString: jest.fn(() => 'mock-crypto-token'),
   })),
   randomUUID: jest.fn(() => 'mock-uuid'),
+  createHash: jest.fn(() => ({
+    update: jest.fn(() => ({
+      digest: jest.fn(() => 'mock-device-hash-value'),
+    })),
+  })),
 }));
 
 describe('AuthService', () => {
@@ -39,6 +47,7 @@ describe('AuthService', () => {
     createEmailVerificationToken: jest.fn(),
     updateEmailVerificationToken: jest.fn(),
     findPasswordResetTokenByToken: jest.fn(),
+    findPasswordResetTokenByUserId: jest.fn(),
     createPasswordResetToken: jest.fn(),
     updatePasswordResetTokenById: jest.fn(),
   };
@@ -54,10 +63,37 @@ describe('AuthService', () => {
     get: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
+    keys: jest.fn(),
   };
 
   const messageBrokerServiceMock = {
     emitMessage: jest.fn(),
+  };
+
+  const configServiceMock = {
+    getOrThrow: jest.fn((key: string) => {
+      const config: Record<string, string | number> = {
+        FRONTEND_URL: 'http://localhost:3000',
+        EMAIL_TOKEN_TTL: 3600,
+        PASSWORD_RESET_TOKEN_TTL: 3600,
+      };
+      return config[key];
+    }),
+  };
+
+  const rateLimiterServiceMock = {
+    checkRateLimit: jest.fn(),
+    checkLockout: jest.fn(),
+    recordFailedAttempt: jest.fn(),
+    resetRateLimit: jest.fn(),
+  };
+
+  const deviceServiceMock = {
+    generateDeviceId: jest.fn(),
+    isKnownDevice: jest.fn(),
+    registerDevice: jest.fn(),
+    updateDeviceLastUsed: jest.fn(),
+    removeAllDevices: jest.fn(),
   };
 
   const mockUser = {
@@ -76,6 +112,11 @@ describe('AuthService', () => {
   const mockUnverifiedUser = {
     ...mockUser,
     isEmailVerified: false,
+  };
+
+  const mockBannedUser = {
+    ...mockUser,
+    isBanned: true,
   };
 
   const mockEmailVerification = {
@@ -110,12 +151,26 @@ describe('AuthService', () => {
         { provide: UserRepository, useValue: userRepositoryMock },
         { provide: RedisService, useValue: redisServiceMock },
         { provide: MessageBrokerService, useValue: messageBrokerServiceMock },
+        { provide: ConfigService, useValue: configServiceMock },
+        { provide: RateLimiterService, useValue: rateLimiterServiceMock },
+        { provide: DeviceService, useValue: deviceServiceMock },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
 
     jest.clearAllMocks();
+
+    // Reset rate limiter mocks to default (resolving) behavior after each clear
+    rateLimiterServiceMock.checkRateLimit.mockResolvedValue(undefined);
+    rateLimiterServiceMock.checkLockout.mockResolvedValue(undefined);
+    rateLimiterServiceMock.recordFailedAttempt.mockResolvedValue({
+      currentAttempts: 0,
+      attemptsLeft: 5,
+      isLocked: false,
+    });
+    rateLimiterServiceMock.resetRateLimit.mockResolvedValue(undefined);
+    deviceServiceMock.removeAllDevices.mockResolvedValue(undefined);
   });
 
   it('should be defined', () => {
@@ -186,6 +241,13 @@ describe('AuthService', () => {
       expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalled();
     });
 
+    it('should throw conflict if user exists with valid non-expired token', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUnverifiedUser);
+      authRepositoryMock.findEmailVerificationTokenByUserId.mockResolvedValue(mockEmailVerification);
+
+      await expect(service.signUp(signUpData)).rejects.toThrow(AppError);
+    });
+
     it('should throw error if user creation fails', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(null);
       hashServiceMock.create.mockResolvedValue('hashed-password');
@@ -202,6 +264,20 @@ describe('AuthService', () => {
   });
 
   describe('resendConfirmationEmail', () => {
+    it('should check rate limit before processing', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUnverifiedUser);
+      authRepositoryMock.findEmailVerificationTokenByUserId.mockResolvedValue(mockEmailVerification);
+      authRepositoryMock.updateEmailVerificationToken.mockResolvedValue({});
+
+      await service.resendConfirmationEmail(mockUnverifiedUser.email);
+
+      expect(rateLimiterServiceMock.checkRateLimit).toHaveBeenCalledWith(
+        'email_resend',
+        mockUnverifiedUser.email,
+        expect.objectContaining({ maxAttempts: 3, windowSeconds: 300 }),
+      );
+    });
+
     it('should resend confirmation email by updating existing token', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUnverifiedUser);
       authRepositoryMock.findEmailVerificationTokenByUserId.mockResolvedValue(mockEmailVerification);
@@ -235,6 +311,14 @@ describe('AuthService', () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
 
       await expect(service.resendConfirmationEmail(mockUser.email)).rejects.toThrow(AppError);
+    });
+
+    it('should throw error if rate limit exceeded', async () => {
+      rateLimiterServiceMock.checkRateLimit.mockRejectedValue(
+        AppError.tooManyRequests('Too many attempts. Please try again later.'),
+      );
+
+      await expect(service.resendConfirmationEmail('test@example.com')).rejects.toThrow(AppError);
     });
 
     it('should throw internal server error for unexpected errors', async () => {
@@ -315,6 +399,28 @@ describe('AuthService', () => {
       password: 'password123',
     };
 
+    const signInDataWithClientInfo = {
+      ...signInData,
+      clientInfo: {
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0)',
+      },
+    };
+
+    it('should check lockout before processing', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      hashServiceMock.compare.mockResolvedValue(true);
+      userRepositoryMock.updateUser.mockResolvedValue(mockUser);
+      tokenServiceMock.generateJwtTokens.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+
+      await service.signIn(signInData);
+
+      expect(rateLimiterServiceMock.checkLockout).toHaveBeenCalledWith('sign_in', signInData.email.toLowerCase());
+    });
+
     it('should sign in user and return auth response with tokens', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
       hashServiceMock.compare.mockResolvedValue(true);
@@ -332,6 +438,7 @@ describe('AuthService', () => {
         id: mockUser.id,
         data: { lastLoginAt: expect.any(Date) as unknown as Date },
       });
+      expect(rateLimiterServiceMock.resetRateLimit).toHaveBeenCalledWith('sign_in', signInData.email.toLowerCase());
       expect(tokenServiceMock.generateJwtTokens).toHaveBeenCalled();
       expect(result).toEqual({
         accessToken: 'access-token',
@@ -340,17 +447,69 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw error if user not found', async () => {
+    it('should throw error if account is locked out', async () => {
+      rateLimiterServiceMock.checkLockout.mockRejectedValue(
+        AppError.tooManyRequests('Account is temporarily locked. Please try again in 15 minutes.'),
+      );
+
+      await expect(service.signIn(signInData)).rejects.toThrow(AppError);
+      expect(userRepositoryMock.findUserByEmail).not.toHaveBeenCalled();
+    });
+
+    it('should record failed attempt and throw error if user not found', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(null);
+      rateLimiterServiceMock.recordFailedAttempt.mockResolvedValue({
+        currentAttempts: 1,
+        attemptsLeft: 4,
+        isLocked: false,
+      });
+
+      await expect(service.signIn(signInData)).rejects.toThrow(AppError);
+      expect(rateLimiterServiceMock.recordFailedAttempt).toHaveBeenCalledWith(
+        'sign_in',
+        signInData.email.toLowerCase(),
+        expect.objectContaining({ maxAttempts: 5 }),
+      );
+    });
+
+    it('should throw forbidden error if user is banned', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockBannedUser);
 
       await expect(service.signIn(signInData)).rejects.toThrow(AppError);
     });
 
-    it('should throw error if password is invalid', async () => {
+    it('should record failed attempt and throw error if password is invalid', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
       hashServiceMock.compare.mockResolvedValue(false);
+      rateLimiterServiceMock.recordFailedAttempt.mockResolvedValue({
+        currentAttempts: 1,
+        attemptsLeft: 4,
+        isLocked: false,
+      });
 
       await expect(service.signIn(signInData)).rejects.toThrow(AppError);
+      expect(rateLimiterServiceMock.recordFailedAttempt).toHaveBeenCalled();
+    });
+
+    it('should lock account and send email after too many failed password attempts', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      hashServiceMock.compare.mockResolvedValue(false);
+      rateLimiterServiceMock.recordFailedAttempt.mockResolvedValue({
+        currentAttempts: 5,
+        attemptsLeft: 0,
+        isLocked: true,
+        lockoutSeconds: 900,
+      });
+
+      await expect(service.signIn(signInData)).rejects.toThrow(AppError);
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalledWith(
+        'notification.email.send',
+        expect.objectContaining({
+          to: mockUser.email,
+          subject: 'Account Temporarily Locked - Security Alert',
+          template: 'account-locked',
+        }),
+      );
     });
 
     it('should throw error and resend verification email if email not verified and no token exists', async () => {
@@ -378,6 +537,70 @@ describe('AuthService', () => {
       authRepositoryMock.findEmailVerificationTokenByUserId.mockResolvedValue(mockEmailVerification);
 
       await expect(service.signIn(signInData)).rejects.toThrow(AppError);
+    });
+
+    it('should detect new device and send notification email', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      hashServiceMock.compare.mockResolvedValue(true);
+      userRepositoryMock.updateUser.mockResolvedValue(mockUser);
+      tokenServiceMock.generateJwtTokens.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+      deviceServiceMock.generateDeviceId.mockReturnValue('device-id-123');
+      deviceServiceMock.isKnownDevice.mockResolvedValue(false);
+
+      await service.signIn(signInDataWithClientInfo);
+
+      expect(deviceServiceMock.generateDeviceId).toHaveBeenCalledWith(
+        signInDataWithClientInfo.clientInfo.ipAddress,
+        signInDataWithClientInfo.clientInfo.userAgent,
+      );
+      expect(deviceServiceMock.isKnownDevice).toHaveBeenCalledWith(mockUser.id, 'device-id-123');
+      expect(deviceServiceMock.registerDevice).toHaveBeenCalledWith(mockUser.id, {
+        deviceId: 'device-id-123',
+        ipAddress: signInDataWithClientInfo.clientInfo.ipAddress,
+        userAgent: signInDataWithClientInfo.clientInfo.userAgent,
+      });
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalledWith(
+        'notification.email.send',
+        expect.objectContaining({
+          to: mockUser.email,
+          subject: 'New Login to Your Account',
+          template: 'new-login',
+        }),
+      );
+    });
+
+    it('should update last used for known device', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      hashServiceMock.compare.mockResolvedValue(true);
+      userRepositoryMock.updateUser.mockResolvedValue(mockUser);
+      tokenServiceMock.generateJwtTokens.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+      deviceServiceMock.generateDeviceId.mockReturnValue('device-id-123');
+      deviceServiceMock.isKnownDevice.mockResolvedValue(true);
+
+      await service.signIn(signInDataWithClientInfo);
+
+      expect(deviceServiceMock.updateDeviceLastUsed).toHaveBeenCalledWith(mockUser.id, 'device-id-123');
+      expect(deviceServiceMock.registerDevice).not.toHaveBeenCalled();
+    });
+
+    it('should skip device detection when no clientInfo provided', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      hashServiceMock.compare.mockResolvedValue(true);
+      userRepositoryMock.updateUser.mockResolvedValue(mockUser);
+      tokenServiceMock.generateJwtTokens.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+
+      await service.signIn(signInData);
+
+      expect(deviceServiceMock.generateDeviceId).not.toHaveBeenCalled();
     });
 
     it('should throw internal server error for unexpected errors', async () => {
@@ -460,9 +683,23 @@ describe('AuthService', () => {
   });
 
   describe('initResetPassword', () => {
-    it('should create password reset token and send email', async () => {
+    it('should check rate limit before processing', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(null);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(null);
+      authRepositoryMock.createPasswordResetToken.mockResolvedValue({});
+
+      await service.initResetPassword(mockUser.email);
+
+      expect(rateLimiterServiceMock.checkRateLimit).toHaveBeenCalledWith(
+        'password_reset_initiate',
+        mockUser.email,
+        expect.objectContaining({ maxAttempts: 3, windowSeconds: 3600 }),
+      );
+    });
+
+    it('should create password reset token and send email when no existing token', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(null);
       authRepositoryMock.createPasswordResetToken.mockResolvedValue({});
 
       const result = await service.initResetPassword(mockUser.email);
@@ -480,15 +717,30 @@ describe('AuthService', () => {
       expect(result).toEqual({ success: true, message: 'Password reset token generated successfully' });
     });
 
+    it('should return success message if valid reset token already exists', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(mockPasswordResetToken);
+
+      const result = await service.initResetPassword(mockUser.email);
+
+      expect(result).toEqual({
+        success: true,
+        message: 'Password reset token already exists. Please check your email.',
+      });
+      expect(authRepositoryMock.createPasswordResetToken).not.toHaveBeenCalled();
+      expect(authRepositoryMock.updatePasswordResetTokenById).not.toHaveBeenCalled();
+    });
+
     it('should update existing expired token', async () => {
       const expiredToken = { ...mockPasswordResetToken, expiresAt: new Date(Date.now() - 3600000) };
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(expiredToken);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(expiredToken);
       authRepositoryMock.updatePasswordResetTokenById.mockResolvedValue({});
 
       const result = await service.initResetPassword(mockUser.email);
 
       expect(authRepositoryMock.updatePasswordResetTokenById).toHaveBeenCalled();
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalled();
       expect(result).toEqual({ success: true, message: 'Password reset token generated successfully' });
     });
 
@@ -504,18 +756,32 @@ describe('AuthService', () => {
       await expect(service.initResetPassword(mockUnverifiedUser.email)).rejects.toThrow(AppError);
     });
 
-    it('should throw error if valid reset token already exists', async () => {
-      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
+    it('should throw error if rate limit exceeded', async () => {
+      rateLimiterServiceMock.checkRateLimit.mockRejectedValue(
+        AppError.tooManyRequests('Too many attempts. Please try again later.'),
+      );
 
       await expect(service.initResetPassword(mockUser.email)).rejects.toThrow(AppError);
     });
   });
 
   describe('resendResetPasswordEmail', () => {
+    it('should check rate limit before processing', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(mockPasswordResetToken);
+
+      await service.resendResetPasswordEmail(mockUser.email);
+
+      expect(rateLimiterServiceMock.checkRateLimit).toHaveBeenCalledWith(
+        'password_reset_resend',
+        mockUser.email,
+        expect.objectContaining({ maxAttempts: 3, windowSeconds: 300 }),
+      );
+    });
+
     it('should resend password reset email', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(mockPasswordResetToken);
 
       const result = await service.resendResetPasswordEmail(mockUser.email);
 
@@ -543,30 +809,40 @@ describe('AuthService', () => {
 
     it('should throw error if no valid token exists', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(null);
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue(null);
 
       await expect(service.resendResetPasswordEmail(mockUser.email)).rejects.toThrow(AppError);
     });
 
     it('should throw error if token is expired', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue(mockUser);
-      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue({
+      authRepositoryMock.findPasswordResetTokenByUserId.mockResolvedValue({
         ...mockPasswordResetToken,
         expiresAt: new Date(Date.now() - 3600000),
       });
 
       await expect(service.resendResetPasswordEmail(mockUser.email)).rejects.toThrow(AppError);
     });
+
+    it('should throw error if rate limit exceeded', async () => {
+      rateLimiterServiceMock.checkRateLimit.mockRejectedValue(
+        AppError.tooManyRequests('Too many attempts. Please try again later.'),
+      );
+
+      await expect(service.resendResetPasswordEmail(mockUser.email)).rejects.toThrow(AppError);
+    });
   });
 
   describe('setNewPassword', () => {
-    it('should set new password and invalidate token', async () => {
+    it('should set new password, invalidate tokens, remove devices, and send confirmation email', async () => {
       authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
       userRepositoryMock.findUserById.mockResolvedValue(mockUser);
       hashServiceMock.same.mockResolvedValue(false);
       hashServiceMock.create.mockResolvedValue('new-hashed-password');
       userRepositoryMock.updateUser.mockResolvedValue(mockUser);
       authRepositoryMock.updatePasswordResetTokenById.mockResolvedValue({});
+      redisServiceMock.keys.mockResolvedValue(['refresh:user-123:session-1', 'refresh:user-123:session-2']);
+      redisServiceMock.del.mockResolvedValue(2);
 
       const result = await service.setNewPassword('reset-token', 'new-password');
 
@@ -583,6 +859,33 @@ describe('AuthService', () => {
         token: '',
         changedAt: expect.any(Date) as unknown as Date,
       });
+      expect(redisServiceMock.keys).toHaveBeenCalledWith(`refresh:${mockPasswordResetToken.userId}:*`);
+      expect(redisServiceMock.del).toHaveBeenCalledWith('refresh:user-123:session-1', 'refresh:user-123:session-2');
+      expect(deviceServiceMock.removeAllDevices).toHaveBeenCalledWith(mockPasswordResetToken.userId);
+      expect(rateLimiterServiceMock.resetRateLimit).toHaveBeenCalledWith('password_reset', mockUser.email);
+      expect(messageBrokerServiceMock.emitMessage).toHaveBeenCalledWith(
+        'notification.email.send',
+        expect.objectContaining({
+          to: mockUser.email,
+          subject: 'Reset password confirmation',
+          template: 'reset-password-confirmation',
+        }),
+      );
+      expect(result).toEqual({ success: true, message: 'Password reset successfully' });
+    });
+
+    it('should skip redis del if no refresh tokens exist', async () => {
+      authRepositoryMock.findPasswordResetTokenByToken.mockResolvedValue(mockPasswordResetToken);
+      userRepositoryMock.findUserById.mockResolvedValue(mockUser);
+      hashServiceMock.same.mockResolvedValue(false);
+      hashServiceMock.create.mockResolvedValue('new-hashed-password');
+      userRepositoryMock.updateUser.mockResolvedValue(mockUser);
+      authRepositoryMock.updatePasswordResetTokenById.mockResolvedValue({});
+      redisServiceMock.keys.mockResolvedValue([]);
+
+      const result = await service.setNewPassword('reset-token', 'new-password');
+
+      expect(redisServiceMock.del).not.toHaveBeenCalledWith(expect.stringContaining('refresh:'));
       expect(result).toEqual({ success: true, message: 'Password reset successfully' });
     });
 
@@ -614,6 +917,97 @@ describe('AuthService', () => {
       hashServiceMock.same.mockRejectedValue(AppError.badRequest('Password cannot be the same as the old one'));
 
       await expect(service.setNewPassword('reset-token', 'same-password')).rejects.toThrow(AppError);
+    });
+  });
+
+  describe('signOutOtherDevices', () => {
+    it('should invalidate all sessions except the current one', async () => {
+      redisServiceMock.keys.mockResolvedValue([
+        'refresh:user-123:session-1',
+        'refresh:user-123:session-2',
+        'refresh:user-123:current-session',
+      ]);
+      redisServiceMock.del.mockResolvedValue(2);
+
+      const result = await service.signOutOtherDevices('user-123', 'current-session');
+
+      expect(redisServiceMock.keys).toHaveBeenCalledWith('refresh:user-123:*');
+      expect(redisServiceMock.del).toHaveBeenCalledWith('refresh:user-123:session-1', 'refresh:user-123:session-2');
+      expect(result).toEqual({
+        success: true,
+        message: 'Successfully logged out from 2 other devices.',
+      });
+    });
+
+    it('should return success with 0 devices if only current session exists', async () => {
+      redisServiceMock.keys.mockResolvedValue(['refresh:user-123:current-session']);
+
+      const result = await service.signOutOtherDevices('user-123', 'current-session');
+
+      expect(redisServiceMock.del).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        success: true,
+        message: 'Successfully logged out from 0 other devices.',
+      });
+    });
+
+    it('should return success with 0 devices if no sessions exist', async () => {
+      redisServiceMock.keys.mockResolvedValue([]);
+
+      const result = await service.signOutOtherDevices('user-123', 'current-session');
+
+      expect(result).toEqual({
+        success: true,
+        message: 'Successfully logged out from 0 other devices.',
+      });
+    });
+
+    it('should throw internal server error for unexpected errors', async () => {
+      redisServiceMock.keys.mockRejectedValue(new Error('Redis error'));
+
+      await expect(service.signOutOtherDevices('user-123', 'current-session')).rejects.toThrow(AppError);
+    });
+  });
+
+  describe('signOutAllDevices', () => {
+    it('should invalidate all sessions for the user', async () => {
+      redisServiceMock.keys.mockResolvedValue([
+        'refresh:user-123:session-1',
+        'refresh:user-123:session-2',
+        'refresh:user-123:session-3',
+      ]);
+      redisServiceMock.del.mockResolvedValue(3);
+
+      const result = await service.signOutAllDevices('user-123');
+
+      expect(redisServiceMock.keys).toHaveBeenCalledWith('refresh:user-123:*');
+      expect(redisServiceMock.del).toHaveBeenCalledWith(
+        'refresh:user-123:session-1',
+        'refresh:user-123:session-2',
+        'refresh:user-123:session-3',
+      );
+      expect(result).toEqual({
+        success: true,
+        message: 'Successfully logged out from 3 devices.',
+      });
+    });
+
+    it('should return success with 0 devices if no sessions exist', async () => {
+      redisServiceMock.keys.mockResolvedValue([]);
+
+      const result = await service.signOutAllDevices('user-123');
+
+      expect(redisServiceMock.del).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        success: true,
+        message: 'Successfully logged out from 0 devices.',
+      });
+    });
+
+    it('should throw internal server error for unexpected errors', async () => {
+      redisServiceMock.keys.mockRejectedValue(new Error('Redis error'));
+
+      await expect(service.signOutAllDevices('user-123')).rejects.toThrow(AppError);
     });
   });
 });

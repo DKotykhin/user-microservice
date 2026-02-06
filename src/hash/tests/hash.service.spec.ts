@@ -34,7 +34,7 @@ describe('HashService', () => {
 
       const result = await service.create('password');
 
-      expect(bcrypt.genSalt).toHaveBeenCalledWith(5);
+      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith('password', 'salt');
       expect(result).toBe('hashed-password');
     });

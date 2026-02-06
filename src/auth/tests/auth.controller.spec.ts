@@ -17,6 +17,8 @@ describe('AuthController', () => {
     initResetPassword: jest.fn(),
     resendResetPasswordEmail: jest.fn(),
     setNewPassword: jest.fn(),
+    signOutOtherDevices: jest.fn(),
+    signOutAllDevices: jest.fn(),
   };
 
   const mockUser = {
@@ -234,6 +236,49 @@ describe('AuthController', () => {
       authServiceMock.setNewPassword.mockRejectedValue(error);
 
       await expect(controller.setNewPassword(setNewPasswordData)).rejects.toThrow(error);
+    });
+  });
+
+  describe('signOutOtherDevices', () => {
+    const signOutOtherDevicesData = { id: 'user-123', currentSessionId: 'session-456' };
+
+    it('should call authService.signOutOtherDevices and return status response', async () => {
+      authServiceMock.signOutOtherDevices.mockResolvedValue(mockStatusResponse);
+
+      const result = await controller.signOutOtherDevices(signOutOtherDevicesData);
+
+      expect(authServiceMock.signOutOtherDevices).toHaveBeenCalledWith(
+        signOutOtherDevicesData.id,
+        signOutOtherDevicesData.currentSessionId,
+      );
+      expect(result).toEqual(mockStatusResponse);
+    });
+
+    it('should propagate errors from authService.signOutOtherDevices', async () => {
+      const error = new Error('Sign out other devices failed');
+      authServiceMock.signOutOtherDevices.mockRejectedValue(error);
+
+      await expect(controller.signOutOtherDevices(signOutOtherDevicesData)).rejects.toThrow(error);
+    });
+  });
+
+  describe('signOutAllDevices', () => {
+    const signOutAllDevicesData = { id: 'user-123' };
+
+    it('should call authService.signOutAllDevices and return status response', async () => {
+      authServiceMock.signOutAllDevices.mockResolvedValue(mockStatusResponse);
+
+      const result = await controller.signOutAllDevices(signOutAllDevicesData);
+
+      expect(authServiceMock.signOutAllDevices).toHaveBeenCalledWith(signOutAllDevicesData.id);
+      expect(result).toEqual(mockStatusResponse);
+    });
+
+    it('should propagate errors from authService.signOutAllDevices', async () => {
+      const error = new Error('Sign out all devices failed');
+      authServiceMock.signOutAllDevices.mockRejectedValue(error);
+
+      await expect(controller.signOutAllDevices(signOutAllDevicesData)).rejects.toThrow(error);
     });
   });
 });
