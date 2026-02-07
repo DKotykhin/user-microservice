@@ -1,12 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HealthCheckService } from '../health-check.service';
+
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
+import { MessageBrokerService } from 'src/transport/message-broker/message-broker.service';
+import { HealthCheckService } from '../health-check.service';
 
 describe('HealthCheckService', () => {
   let service: HealthCheckService;
   let prisma: jest.Mocked<PrismaService>;
+  let redis: jest.Mocked<RedisService>;
+  let messageBroker: jest.Mocked<MessageBrokerService>;
 
   beforeEach(async () => {
+    jest.useFakeTimers();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HealthCheckService,
@@ -16,34 +23,197 @@ describe('HealthCheckService', () => {
             $queryRaw: jest.fn(),
           },
         },
+        {
+          provide: RedisService,
+          useValue: {
+            ping: jest.fn(),
+          },
+        },
+        {
+          provide: MessageBrokerService,
+          useValue: {
+            checkConnection: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<HealthCheckService>(HealthCheckService);
     prisma = module.get(PrismaService);
+    redis = module.get(RedisService);
+    messageBroker = module.get(MessageBrokerService);
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('checkDatabaseConnection', () => {
-    it('should return true when database is reachable', async () => {
-      prisma.$queryRaw.mockResolvedValueOnce(1 as any);
+  describe('checkAppConnections', () => {
+    it('should return serving true when all dependencies are healthy', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockResolvedValue(undefined);
 
-      const result = await service.checkDatabaseConnection();
+      const resultPromise = service.checkAppConnections();
 
-      expect(prisma.$queryRaw).toHaveBeenCalled();
-      expect(result).toBe(true);
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(true);
+      expect(result.message).toBe('All dependencies are healthy');
+      expect(result.dependencies).toHaveLength(3);
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'postgres', healthy: true }),
+          expect.objectContaining({ name: 'redis', healthy: true }),
+          expect.objectContaining({ name: 'rabbitmq', healthy: true }),
+        ]),
+      );
     });
 
-    it('should return false when database throws error', async () => {
-      prisma.$queryRaw.mockRejectedValueOnce(new Error('DB down'));
+    it('should return serving false when postgres is unhealthy', async () => {
+      prisma.$queryRaw.mockRejectedValue(new Error('connection refused'));
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockResolvedValue(undefined);
 
-      const result = await service.checkDatabaseConnection();
+      const resultPromise = service.checkAppConnections();
 
-      expect(prisma.$queryRaw).toHaveBeenCalled();
-      expect(result).toBe(false);
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.message).toBe('One or more dependencies are unhealthy');
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'postgres', healthy: false, message: 'connection refused' }),
+          expect.objectContaining({ name: 'redis', healthy: true }),
+          expect.objectContaining({ name: 'rabbitmq', healthy: true }),
+        ]),
+      );
+    });
+
+    it('should return serving false when redis is unhealthy', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+      redis.ping.mockRejectedValue(new Error('ECONNREFUSED'));
+      messageBroker.checkConnection.mockResolvedValue(undefined);
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'postgres', healthy: true }),
+          expect.objectContaining({ name: 'redis', healthy: false, message: 'ECONNREFUSED' }),
+          expect.objectContaining({ name: 'rabbitmq', healthy: true }),
+        ]),
+      );
+    });
+
+    it('should return serving false when rabbitmq is unhealthy', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockRejectedValue(new Error('channel closed'));
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'postgres', healthy: true }),
+          expect.objectContaining({ name: 'redis', healthy: true }),
+          expect.objectContaining({ name: 'rabbitmq', healthy: false, message: 'channel closed' }),
+        ]),
+      );
+    });
+
+    it('should return serving false when all dependencies are unhealthy', async () => {
+      prisma.$queryRaw.mockRejectedValue(new Error('pg error'));
+      redis.ping.mockRejectedValue(new Error('redis error'));
+      messageBroker.checkConnection.mockRejectedValue(new Error('rabbitmq error'));
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.message).toBe('One or more dependencies are unhealthy');
+      expect(result.dependencies.every((dep) => !dep.healthy)).toBe(true);
+    });
+
+    it('should include latencyMs for each dependency', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockResolvedValue(undefined);
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      for (const dep of result.dependencies) {
+        expect(typeof dep.latencyMs).toBe('number');
+        expect(dep.latencyMs).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should handle non-Error rejection values', async () => {
+      prisma.$queryRaw.mockRejectedValue('string error');
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockResolvedValue(undefined);
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'postgres', healthy: false, message: 'string error' }),
+        ]),
+      );
+    });
+
+    it('should return unhealthy when a dependency times out', async () => {
+      prisma.$queryRaw.mockReturnValue(new Promise(() => {}) as never);
+      redis.ping.mockResolvedValue('PONG');
+      messageBroker.checkConnection.mockResolvedValue(undefined);
+
+      const resultPromise = service.checkAppConnections();
+
+      jest.advanceTimersByTime(3000);
+
+      const result = await resultPromise;
+
+      expect(result.serving).toBe(false);
+      expect(result.dependencies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'postgres',
+            healthy: false,
+            message: 'postgres health check timed out',
+          }),
+        ]),
+      );
     });
   });
 });

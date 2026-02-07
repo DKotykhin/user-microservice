@@ -12,6 +12,10 @@ export class MessageBrokerService {
     private readonly notificationMicroserviceClient: ClientProxy,
   ) {}
 
+  async checkConnection(): Promise<void> {
+    await this.notificationMicroserviceClient.connect();
+  }
+
   emitMessage(pattern: string, payload: EmailRequest): void {
     this.logger.log(`Emitting event: ${pattern}`);
 

@@ -2,7 +2,11 @@ import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 
 import { GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
-import { HEALTH_CHECK_SERVICE_NAME, type HealthCheckResponse } from 'src/generated-types/health-check';
+import {
+  HEALTH_CHECK_SERVICE_NAME,
+  type HealthCheckResponse,
+  type ReadinessResponse,
+} from 'src/generated-types/health-check';
 import { HealthCheckService } from './health-check.service';
 
 @Controller()
@@ -20,13 +24,9 @@ export class HealthCheckController {
     };
   }
 
-  @GrpcMethod(HEALTH_CHECK_SERVICE_NAME, 'CheckDatabaseConnection')
-  async checkDatabaseConnection(): Promise<HealthCheckResponse> {
-    this.logger.log('Database connection health check requested');
-    const response = await this.healthCheckService.checkDatabaseConnection();
-    return {
-      serving: response,
-      message: response ? 'Database connection is healthy' : 'Database connection failed',
-    };
+  @GrpcMethod(HEALTH_CHECK_SERVICE_NAME, 'CheckAppConnections')
+  async checkAppConnections(): Promise<ReadinessResponse> {
+    this.logger.log('Check app connections requested');
+    return this.healthCheckService.checkAppConnections();
   }
 }

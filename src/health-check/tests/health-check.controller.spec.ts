@@ -1,30 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+import { GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
+import type { ReadinessResponse } from 'src/generated-types/health-check';
 import { HealthCheckController } from '../health-check.controller';
 import { HealthCheckService } from '../health-check.service';
-import { GrpcMetricsInterceptor } from 'src/supervision/metrics/interceptors';
 
 describe('HealthCheckController', () => {
   let controller: HealthCheckController;
-  let service: jest.Mocked<HealthCheckService>;
+
+  const healthCheckServiceMock = {
+    checkAppConnections: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthCheckController],
-      providers: [
-        {
-          provide: HealthCheckService,
-          useValue: {
-            checkDatabaseConnection: jest.fn(),
-          },
-        },
-      ],
+      providers: [{ provide: HealthCheckService, useValue: healthCheckServiceMock }],
     })
       .overrideInterceptor(GrpcMetricsInterceptor)
       .useValue({})
       .compile();
 
     controller = module.get<HealthCheckController>(HealthCheckController);
-    service = module.get(HealthCheckService);
+
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -32,7 +31,7 @@ describe('HealthCheckController', () => {
   });
 
   describe('checkHealth', () => {
-    it('should return healthy app response', () => {
+    it('should return serving true with health message', () => {
       const result = controller.checkHealth();
 
       expect(result).toEqual({
@@ -42,29 +41,31 @@ describe('HealthCheckController', () => {
     });
   });
 
-  describe('checkDatabaseConnection', () => {
-    it('should return healthy response when DB is healthy', async () => {
-      service.checkDatabaseConnection.mockResolvedValueOnce(true);
+  describe('checkAppConnections', () => {
+    const mockReadinessResponse: ReadinessResponse = {
+      serving: true,
+      message: 'All dependencies are healthy',
+      dependencies: [
+        { name: 'postgres', healthy: true, message: 'postgres is healthy', latencyMs: 5 },
+        { name: 'redis', healthy: true, message: 'redis is healthy', latencyMs: 2 },
+        { name: 'rabbitmq', healthy: true, message: 'rabbitmq is healthy', latencyMs: 3 },
+      ],
+    };
 
-      const result = await controller.checkDatabaseConnection();
+    it('should call healthCheckService.checkAppConnections and return result', async () => {
+      healthCheckServiceMock.checkAppConnections.mockResolvedValue(mockReadinessResponse);
 
-      expect(service.checkDatabaseConnection).toHaveBeenCalled();
-      expect(result).toEqual({
-        serving: true,
-        message: 'Database connection is healthy',
-      });
+      const result = await controller.checkAppConnections();
+
+      expect(healthCheckServiceMock.checkAppConnections).toHaveBeenCalled();
+      expect(result).toEqual(mockReadinessResponse);
     });
 
-    it('should return unhealthy response when DB is down', async () => {
-      service.checkDatabaseConnection.mockResolvedValueOnce(false);
+    it('should propagate errors from healthCheckService.checkAppConnections', async () => {
+      const error = new Error('Check connections failed');
+      healthCheckServiceMock.checkAppConnections.mockRejectedValue(error);
 
-      const result = await controller.checkDatabaseConnection();
-
-      expect(service.checkDatabaseConnection).toHaveBeenCalled();
-      expect(result).toEqual({
-        serving: false,
-        message: 'Database connection failed',
-      });
+      await expect(controller.checkAppConnections()).rejects.toThrow(error);
     });
   });
 });
