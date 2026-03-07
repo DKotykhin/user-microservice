@@ -56,6 +56,43 @@ export interface UpdateUserRequest {
   avatarUrl?: string | null | undefined;
 }
 
+/** Message for password related requests */
+export interface PasswordRequest {
+  id: string;
+  password: string;
+}
+
+/** Message for upserting a delivery address */
+export interface UpsertDeliveryAddressRequest {
+  userId?: string | null;
+  addressId?: string | null;
+  addressLine: string;
+  city: string;
+  state?: string | null | undefined;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+/** Message for a delivery address */
+export interface DeliveryAddress {
+  id: string;
+  userId: string;
+  addressLine: string;
+  city: string;
+  state?: string | null | undefined;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+/** Message for getting delivery addresses response */
+export interface GetDeliveryAddressesResponse {
+  addresses: DeliveryAddress[];
+}
+
 /** Message for banning a user */
 export interface BanUserRequest {
   id: string;
@@ -83,12 +120,6 @@ export interface BanDetailsResponse {
 /** Message for getting banned users response */
 export interface GetBannedUsersResponse {
   users: User[];
-}
-
-/** Message for password related requests */
-export interface PasswordRequest {
-  id: string;
-  password: string;
 }
 
 /** Message for changing user role */
@@ -154,6 +185,18 @@ export interface UserServiceClient {
 
   changePassword(request: PasswordRequest): Observable<StatusResponse>;
 
+  /** rpc to create or update user address */
+
+  upsertDeliveryAddress(request: UpsertDeliveryAddressRequest): Observable<DeliveryAddress>;
+
+  /** rpc to get user delivery addresses */
+
+  getDeliveryAddresses(request: Id): Observable<GetDeliveryAddressesResponse>;
+
+  /** rpc to delete user delivery address */
+
+  deleteDeliveryAddress(request: Id): Observable<StatusResponse>;
+
   /**
    * --- admin access rpc methods --- //
    * rpc to get all users
@@ -208,6 +251,22 @@ export interface UserServiceController {
 
   changePassword(request: PasswordRequest): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
 
+  /** rpc to create or update user address */
+
+  upsertDeliveryAddress(
+    request: UpsertDeliveryAddressRequest,
+  ): Promise<DeliveryAddress> | Observable<DeliveryAddress> | DeliveryAddress;
+
+  /** rpc to get user delivery addresses */
+
+  getDeliveryAddresses(
+    request: Id,
+  ): Promise<GetDeliveryAddressesResponse> | Observable<GetDeliveryAddressesResponse> | GetDeliveryAddressesResponse;
+
+  /** rpc to delete user delivery address */
+
+  deleteDeliveryAddress(request: Id): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
+
   /**
    * --- admin access rpc methods --- //
    * rpc to get all users
@@ -246,6 +305,9 @@ export function UserServiceControllerMethods() {
       "deleteUser",
       "confirmPassword",
       "changePassword",
+      "upsertDeliveryAddress",
+      "getDeliveryAddresses",
+      "deleteDeliveryAddress",
       "getAllUsers",
       "banUser",
       "unbanUser",

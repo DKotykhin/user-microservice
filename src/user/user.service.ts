@@ -12,11 +12,14 @@ import {
   type AllUsersResponse,
   type BanDetailsResponse,
   type BanUserRequest,
+  type DeliveryAddress,
   type GetBannedUsersResponse,
+  type GetDeliveryAddressesResponse,
   type PaginationMeta,
   type PasswordRequest,
   type StatusResponse,
   type UpdateUserRequest,
+  type UpsertDeliveryAddressRequest,
   type User,
 } from 'src/generated-types/user';
 import type { EmailRequest } from 'src/transport/message-broker/email.request.interface';
@@ -296,6 +299,42 @@ export class UserService {
       this.logger.error(`Error changing user role: ${error instanceof Error ? error.message : error}`);
       if (error instanceof AppError) throw error;
       throw AppError.internalServerError('Failed to change user role');
+    }
+  }
+
+  async getDeliveryAddressesByUserId(userId: string): Promise<GetDeliveryAddressesResponse> {
+    this.logger.log(`Getting delivery addresses for user ID: ${userId}`);
+    try {
+      const addresses = await this.userRepository.getDeliveryAddressesByUserId(userId);
+      return { addresses };
+    } catch (error) {
+      this.logger.error(`Error getting delivery addresses: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to get delivery addresses');
+    }
+  }
+
+  async upsertDeliveryAddress(data: UpsertDeliveryAddressRequest): Promise<DeliveryAddress> {
+    this.logger.log(`Upserting delivery address for user ID: ${data.userId}`);
+    try {
+      const address = await this.userRepository.upsertDeliveryAddress(data);
+      return address;
+    } catch (error) {
+      this.logger.error(`Error upserting delivery address: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to upsert delivery address');
+    }
+  }
+
+  async deleteDeliveryAddress(id: string): Promise<StatusResponse> {
+    this.logger.log(`Deleting delivery address with ID: ${id}`);
+    try {
+      await this.userRepository.deleteDeliveryAddress(id);
+      return { success: true, message: 'Delivery address deleted successfully' };
+    } catch (error) {
+      this.logger.error(`Error deleting delivery address: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to delete delivery address');
     }
   }
 }

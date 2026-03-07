@@ -37,3 +37,8 @@ export type EmailVerificationToken = Prisma.EmailVerificationTokenModel
  * 
  */
 export type BanDetails = Prisma.BanDetailsModel
+/**
+ * Model DeliveryAddress
+ * 
+ */
+export type DeliveryAddress = Prisma.DeliveryAddressModel

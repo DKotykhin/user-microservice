@@ -31,6 +31,7 @@ model User {
   emailVerificationTokens EmailVerificationToken?
   passwordResetTokens     PasswordResetToken?
   banDetails              BanDetails[]
+  deliveryAddresses       DeliveryAddress[]
 
   @@map("users")
 }
@@ -70,4 +71,20 @@ model BanDetails {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ban_details")
+}
+
+model DeliveryAddress {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  addressLine String   @map("address_line")
+  city        String
+  state       String?
+  postalCode  String   @map("postal_code")
+  country     String
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_addresses")
 }

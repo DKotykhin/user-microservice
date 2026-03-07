@@ -18,6 +18,12 @@ service UserService {
   rpc ConfirmPassword(PasswordRequest) returns (StatusResponse) {}
   // rpc to change user password
   rpc ChangePassword(PasswordRequest) returns (StatusResponse) {}
+  // rpc to create or update user address
+  rpc UpsertDeliveryAddress(UpsertDeliveryAddressRequest) returns (DeliveryAddress) {}
+  // rpc to get user delivery addresses
+  rpc GetDeliveryAddresses(Id) returns (GetDeliveryAddressesResponse) {}
+  // rpc to delete user delivery address
+  rpc DeleteDeliveryAddress(Id) returns (StatusResponse) {}
 
   // --- admin access rpc methods --- //
   // rpc to get all users
@@ -44,7 +50,7 @@ message User {
   optional string avatar_url = 6;
   string password_hash = 7;
   bool is_email_verified = 8;
-  optional google.protobuf.Timestamp last_login = 9; 
+  optional google.protobuf.Timestamp last_login = 9;
   bool is_banned = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
@@ -76,6 +82,45 @@ message UpdateUserRequest {
   optional string avatar_url = 4;
 }
 
+// Message for password related requests
+message PasswordRequest {
+  string id = 1;
+  string password = 2;
+}
+
+// Message for upserting a delivery address
+message UpsertDeliveryAddressRequest {
+  oneof target {
+    string user_id = 1;
+    string address_id = 2;
+  }
+  string address_line = 3;
+  string city = 4;
+  optional string state = 5;
+  string postal_code = 6;
+  string country = 7;
+  bool is_default = 8;
+}
+
+// Message for a delivery address
+message DeliveryAddress {
+  string id = 1;
+  string user_id = 2;
+  string address_line = 3;
+  string city = 4;
+  optional string state = 5;
+  string postal_code = 6;
+  string country = 7;
+  bool is_default = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// Message for getting delivery addresses response
+message GetDeliveryAddressesResponse {
+  repeated DeliveryAddress addresses = 1;
+}
+
 // Message for banning a user
 message BanUserRequest {
   string id = 1;
@@ -103,12 +148,6 @@ message BanDetailsResponse {
 // Message for getting banned users response
 message GetBannedUsersResponse {
   repeated User users = 1;
-}
-
-// Message for password related requests
-message PasswordRequest {
-  string id = 1;
-  string password = 2;
 }
 
 // Message for changing user role

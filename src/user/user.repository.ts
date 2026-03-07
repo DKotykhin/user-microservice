@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import type { BanDetails, User } from 'prisma/generated-types/client';
+import type { BanDetails, DeliveryAddress, User } from 'prisma/generated-types/client';
 import type { SignUpRequest } from 'src/generated-types/auth';
-import type { AllUsersRequest, PaginationMeta } from 'src/generated-types/user';
+import type { AllUsersRequest, PaginationMeta, UpsertDeliveryAddressRequest } from 'src/generated-types/user';
 
 @Injectable()
 export class UserRepository {
@@ -99,6 +99,74 @@ export class UserRepository {
     this.logger.log(`Creating ban details for user id: ${data.userId}`);
     return await this.prisma.banDetails.create({
       data,
+    });
+  }
+
+  // Get delivery addresses by user id
+  async getDeliveryAddressesByUserId(userId: string): Promise<DeliveryAddress[]> {
+    this.logger.log(`Fetching delivery addresses for user id: ${userId}`);
+    return await this.prisma.deliveryAddress.findMany({
+      where: { userId },
+    });
+  }
+
+  // Create or update delivery address
+  async upsertDeliveryAddress(data: UpsertDeliveryAddressRequest): Promise<DeliveryAddress> {
+    if (data.userId) {
+      const userId = data.userId;
+      this.logger.log(`Creating delivery address for user id: ${userId}`);
+      return await this.prisma.$transaction(async (tx) => {
+        if (data.isDefault) {
+          await tx.deliveryAddress.updateMany({
+            where: { userId },
+            data: { isDefault: false },
+          });
+        }
+        return tx.deliveryAddress.create({
+          data: {
+            userId,
+            addressLine: data.addressLine,
+            city: data.city,
+            state: data.state ?? undefined,
+            postalCode: data.postalCode,
+            country: data.country,
+            isDefault: data.isDefault,
+          },
+        });
+      });
+    } else if (data.addressId) {
+      const addressId = data.addressId;
+      this.logger.log(`Updating delivery address with id: ${addressId}`);
+      return await this.prisma.$transaction(async (tx) => {
+        if (data.isDefault) {
+          const existing = await tx.deliveryAddress.findUniqueOrThrow({ where: { id: addressId } });
+          await tx.deliveryAddress.updateMany({
+            where: { userId: existing.userId },
+            data: { isDefault: false },
+          });
+        }
+        return tx.deliveryAddress.update({
+          where: { id: addressId },
+          data: {
+            addressLine: data.addressLine,
+            city: data.city,
+            state: data.state ?? undefined,
+            postalCode: data.postalCode,
+            country: data.country,
+            isDefault: data.isDefault,
+          },
+        });
+      });
+    } else {
+      throw new Error('Either userId or addressId must be provided');
+    }
+  }
+
+  // Delete delivery address
+  async deleteDeliveryAddress(id: string): Promise<void> {
+    this.logger.log(`Deleting delivery address with id: ${id}`);
+    await this.prisma.deliveryAddress.delete({
+      where: { id },
     });
   }
 }

@@ -54,7 +54,8 @@ export const ModelName = {
   User: 'User',
   PasswordResetToken: 'PasswordResetToken',
   EmailVerificationToken: 'EmailVerificationToken',
-  BanDetails: 'BanDetails'
+  BanDetails: 'BanDetails',
+  DeliveryAddress: 'DeliveryAddress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -126,6 +127,22 @@ export const BanDetailsScalarFieldEnum = {
 } as const
 
 export type BanDetailsScalarFieldEnum = (typeof BanDetailsScalarFieldEnum)[keyof typeof BanDetailsScalarFieldEnum]
+
+
+export const DeliveryAddressScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  addressLine: 'addressLine',
+  city: 'city',
+  state: 'state',
+  postalCode: 'postalCode',
+  country: 'country',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DeliveryAddressScalarFieldEnum = (typeof DeliveryAddressScalarFieldEnum)[keyof typeof DeliveryAddressScalarFieldEnum]
 
 
 export const SortOrder = {
