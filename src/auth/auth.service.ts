@@ -419,10 +419,10 @@ export class AuthService {
       if (clientInfo?.ipAddress && clientInfo?.userAgent) {
         const deviceId = this.deviceService.generateDeviceId(clientInfo.ipAddress, clientInfo.userAgent);
         const isKnownDevice = await this.deviceService.isKnownDevice(user.id, deviceId);
-        const result = new UAParser(clientInfo.userAgent).getResult();
-        const geo = geoip.lookup(clientInfo.ipAddress);
 
         if (!isKnownDevice) {
+          const result = new UAParser(clientInfo.userAgent).getResult();
+          const geo = geoip.lookup(clientInfo.ipAddress);
           // New device detected - send notification email
           this.sendNewLoginNotificationEmail(user.email, user.name, {
             ipAddress: clientInfo.ipAddress,
