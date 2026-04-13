@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import type { EmailVerificationToken, PasswordResetToken, User } from 'prisma/generated-types/client';
+import type { EmailVerificationToken, OAuthAccount, PasswordResetToken, User } from 'prisma/generated-types/client';
 
 interface EmailVerificationTokenWithUser extends EmailVerificationToken {
   user: User;
@@ -106,6 +106,34 @@ export class AuthRepository {
         token,
         expiresAt,
       },
+    });
+  }
+
+  // Find OAuth account by provider + providerId
+  async findOAuthAccount(provider: string, providerId: string): Promise<OAuthAccount | null> {
+    this.logger.log(`Finding OAuth account for provider: ${provider}, providerId: ${providerId}`);
+    return await this.prisma.oAuthAccount.findUnique({
+      where: { provider_providerId: { provider, providerId } },
+    });
+  }
+
+  // Create OAuth account linked to a user
+  async createOAuthAccount({
+    userId,
+    provider,
+    providerId,
+    accessToken,
+    refreshToken,
+  }: {
+    userId: string;
+    provider: string;
+    providerId: string;
+    accessToken?: string | null;
+    refreshToken?: string | null;
+  }): Promise<OAuthAccount> {
+    this.logger.log(`Creating OAuth account for provider: ${provider}, userId: ${userId}`);
+    return await this.prisma.oAuthAccount.create({
+      data: { userId, provider, providerId, accessToken, refreshToken },
     });
   }
 

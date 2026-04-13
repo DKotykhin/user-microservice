@@ -139,6 +139,10 @@ export class UserService {
         throw AppError.notFound('User not found');
       }
 
+      if (!user.passwordHash) {
+        throw AppError.badRequest('User does not have a password set');
+      }
+
       const isMatch = await this.hashService.compare(data.password, user.passwordHash);
       if (!isMatch) {
         this.logger.warn(`Password mismatch for user ID: ${data.id}`);
@@ -161,6 +165,9 @@ export class UserService {
       if (!user) {
         this.logger.warn(`User not found with ID: ${data.id}`);
         throw AppError.notFound('User not found');
+      }
+      if (!user.passwordHash) {
+        throw AppError.badRequest('User does not have a password set');
       }
       await this.hashService.theSame(data.password, user.passwordHash);
 

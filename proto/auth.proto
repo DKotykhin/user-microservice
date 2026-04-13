@@ -28,6 +28,8 @@ service AuthService {
   rpc SignOutOtherDevices(SignOutRequest) returns (user.v1.StatusResponse) {}
   // rpc to sign out a user from all devices
   rpc SignOutAllDevices(user.v1.Id) returns (user.v1.StatusResponse) {}
+  // rpc to sign in a user via OAuth provider
+  rpc OAuthSignIn(OAuthSignInRequest) returns (AuthResponse) {}
 }
 
 // Message for sign up request
@@ -90,6 +92,18 @@ message SetNewPasswordRequest {
 message SignOutRequest {
   string user_id = 1;
   string current_session_id = 2;
+}
+
+// Message for OAuth sign in request
+message OAuthSignInRequest {
+  string provider = 1;
+  string provider_id = 2;
+  optional string email = 3;
+  optional string name = 4;
+  optional string avatar_url = 5;
+  optional string access_token = 6;
+  optional string refresh_token = 7;
+  optional ClientInfo client_info = 8;
 }
 
 // Command to generate TypeScript code with NestJS options, using null for optional fields and Date for timestamps

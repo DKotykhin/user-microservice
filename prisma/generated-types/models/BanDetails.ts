@@ -172,7 +172,7 @@ export type BanDetailsGroupByOutputType = {
   _max: BanDetailsMaxAggregateOutputType | null
 }
 
-type GetBanDetailsGroupByPayload<T extends BanDetailsGroupByArgs> = Prisma.PrismaPromise<
+export type GetBanDetailsGroupByPayload<T extends BanDetailsGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<BanDetailsGroupByOutputType, T['by']> &
       {
@@ -1192,6 +1192,11 @@ export type BanDetailsFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Skip the first `n` BanDetails.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of BanDetails.
+   */
   distinct?: Prisma.BanDetailsScalarFieldEnum | Prisma.BanDetailsScalarFieldEnum[]
 }
 

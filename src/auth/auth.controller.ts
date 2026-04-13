@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 
 import {
   AUTH_SERVICE_NAME,
+  type OAuthSignInRequest,
   type SignInRequest,
   type Token,
   type VerifyEmailRequest,
@@ -72,18 +73,24 @@ export class AuthController {
     return await this.authService.setNewPassword(data);
   }
 
-  @GrpcMethod('AuthService', 'SignOutCurrentDevice')
+  @GrpcMethod(AUTH_SERVICE_NAME, 'SignOutCurrentDevice')
   async signOutCurrentDevice(data: SignOutRequest): Promise<StatusResponse> {
     return this.authService.signOutCurrentDevice(data);
   }
 
-  @GrpcMethod('AuthService', 'SignOutOtherDevices')
+  @GrpcMethod(AUTH_SERVICE_NAME, 'SignOutOtherDevices')
   async signOutOtherDevices(data: SignOutRequest): Promise<StatusResponse> {
     return this.authService.signOutOtherDevices(data);
   }
 
-  @GrpcMethod('AuthService', 'SignOutAllDevices')
+  @GrpcMethod(AUTH_SERVICE_NAME, 'SignOutAllDevices')
   async signOutAllDevices(data: Id): Promise<StatusResponse> {
     return this.authService.signOutAllDevices(data.id);
+  }
+
+  @GrpcMethod(AUTH_SERVICE_NAME, 'OAuthSignIn')
+  async oauthSignIn(data: OAuthSignInRequest): Promise<AuthResponse> {
+    this.logger.log(`Received OAuthSignIn request for provider: ${data.provider}`);
+    return await this.authService.oauthSignIn(data);
   }
 }

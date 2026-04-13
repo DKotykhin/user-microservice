@@ -59,6 +59,22 @@ export class UserRepository {
     });
   }
 
+  // Create a new OAuth user (no password, email pre-verified)
+  async createOAuthUser({
+    email,
+    name,
+    avatarUrl,
+  }: {
+    email: string;
+    name?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<User> {
+    this.logger.log(`Creating OAuth user with email: ${email}`);
+    return await this.prisma.user.create({
+      data: { email, name, avatarUrl, isEmailVerified: true, passwordHash: null },
+    });
+  }
+
   // Update user
   async updateUser({ id, data }: { id: string; data: Partial<User> }): Promise<User> {
     this.logger.log(`Updating user with id: ${id}`);

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { UAParser } from 'ua-parser-js';
 import * as crypto from 'crypto';
 import * as geoip from 'geoip-lite';
+import type { User as PrismaUser } from 'prisma/generated-types/client';
 
 import { HashService } from 'src/hash/hash.service';
 import { TokenService } from 'src/token/token.service';
@@ -18,6 +19,7 @@ import { AuthRepository } from './auth.repository';
 import { type StatusResponse, UserRole, type User } from 'src/generated-types/user';
 import type {
   AuthResponse,
+  OAuthSignInRequest,
   RefreshTokensResponse,
   SetNewPasswordRequest,
   SignInRequest,
@@ -47,6 +49,11 @@ export class AuthService {
     maxAttempts: 3,
     windowSeconds: 3600, // 1 hour
     lockoutSeconds: 3600, // 1 hour lockout
+  };
+  private readonly OAUTH_RATE_LIMIT = {
+    maxAttempts: 20,
+    windowSeconds: 900, // 15 minutes
+    lockoutSeconds: 1800, // 30 min lockout
   };
 
   constructor(
@@ -386,7 +393,10 @@ export class AuthService {
         throw AppError.unauthorized('Email not verified. Please check your email for verification link.');
       }
 
-      // Verify password
+      // Verify password — OAuth users have no password hash
+      if (!user.passwordHash) {
+        throw AppError.unauthorized('This account uses social login. Please sign in with Google or GitHub.');
+      }
       const isPasswordValid = await this.hashService.compare(data.password, user.passwordHash);
       if (!isPasswordValid) {
         // Record failed attempt ONLY on wrong password
@@ -666,7 +676,10 @@ export class AuthService {
         throw AppError.badRequest('Invalid password reset token');
       }
 
-      // Ensure the new password is different from the old one
+      // Ensure the new password is different from the old one — OAuth users have no password hash
+      if (!user.passwordHash) {
+        throw AppError.badRequest('This account uses social login and has no password to reset.');
+      }
       await this.hashService.theSame(password, user.passwordHash);
 
       // Hash the new password
@@ -768,6 +781,123 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Error during logout all devices: ${error instanceof Error ? error.message : error}`);
       throw AppError.internalServerError('Failed to logout from all devices');
+    }
+  }
+
+  async oauthSignIn(data: OAuthSignInRequest): Promise<AuthResponse> {
+    this.logger.log(`OAuth sign in for provider: ${data.provider}, providerId: ${data.providerId}`);
+    try {
+      // 1. Rate limit by IP to prevent account enumeration and resource abuse
+      if (data.clientInfo?.ipAddress) {
+        await this.rateLimiterService.checkRateLimit('oauth_signin', data.clientInfo.ipAddress, this.OAUTH_RATE_LIMIT);
+      }
+
+      // 2. Look up existing OAuth account
+      const oauthAccount = await this.authRepository.findOAuthAccount(data.provider, data.providerId);
+
+      let user: PrismaUser;
+
+      if (oauthAccount) {
+        // Known OAuth account — load the linked user
+        const found = await this.userRepository.findUserById(oauthAccount.userId);
+        if (!found) {
+          this.logger.error(`User not found for OAuth account: ${oauthAccount.userId}`);
+          throw AppError.internalServerError('User not found');
+        }
+        user = found;
+      } else {
+        // No OAuth account yet — find by email or create a new user
+        const email = data.email?.toLowerCase();
+        if (!email) {
+          throw AppError.badRequest('Email is required for OAuth sign in');
+        }
+
+        const existingUser = await this.userRepository.findUserByEmail(email);
+        if (!existingUser) {
+          user = await this.userRepository.createOAuthUser({
+            email,
+            name: data.name,
+            avatarUrl: data.avatarUrl,
+          });
+          this.logger.log(`Created new OAuth user with ID: ${user.id}`);
+        } else {
+          // Existing email/password user — ensure their email is marked verified
+          // since the OAuth provider has already confirmed it
+          if (!existingUser.isEmailVerified) {
+            user = await this.userRepository.updateUser({
+              id: existingUser.id,
+              data: { isEmailVerified: true },
+            });
+          } else {
+            user = existingUser;
+          }
+          this.logger.log(`Linking OAuth account to existing user ID: ${user.id}`);
+        }
+
+        // Link OAuth account to the user
+        await this.authRepository.createOAuthAccount({
+          userId: user.id,
+          provider: data.provider,
+          providerId: data.providerId,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        });
+      }
+
+      // 3. Check if banned
+      if (user.isBanned) {
+        throw AppError.forbidden('User is banned');
+      }
+
+      // 4. Handle device tracking (same as signIn)
+      const clientInfo = data.clientInfo;
+      if (clientInfo?.ipAddress && clientInfo?.userAgent) {
+        const deviceId = this.deviceService.generateDeviceId(clientInfo.ipAddress, clientInfo.userAgent);
+        const isKnownDevice = await this.deviceService.isKnownDevice(user.id, deviceId);
+        const result = new UAParser(clientInfo.userAgent).getResult();
+
+        if (!isKnownDevice) {
+          const geo = geoip.lookup(clientInfo.ipAddress);
+          this.sendNewLoginNotificationEmail(user.email, user.name, {
+            ipAddress: clientInfo.ipAddress,
+            userAgent: result.ua,
+            timestamp: new Date(),
+            location: geo ? `${geo.city}, ${geo.country}` : 'Unknown',
+          });
+          await this.deviceService.registerDevice(user.id, {
+            deviceId,
+            ipAddress: clientInfo.ipAddress,
+            userAgent: result.ua,
+          });
+        } else {
+          await this.deviceService.updateDeviceLastUsed(user.id, deviceId);
+        }
+      }
+
+      // 5. Update last login timestamp
+      await this.userRepository.updateUser({ id: user.id, data: { lastLoginAt: new Date() } });
+
+      // 6. Generate JWT tokens
+      const { accessToken, refreshToken } = await this.tokenService.generateJwtTokens({
+        userId: user.id,
+        isBanned: user.isBanned,
+        role: convertEnum(UserRole, user.role),
+        sid: crypto.randomUUID(),
+      });
+
+      this.logger.log(`OAuth sign in successful for user ID: ${user.id}`);
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          ...user,
+          role: convertEnum(UserRole, user.role),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Error during OAuth sign in: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof AppError) throw error;
+      throw AppError.internalServerError('Failed to OAuth sign in');
     }
   }
 }

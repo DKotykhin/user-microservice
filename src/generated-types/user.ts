@@ -29,7 +29,7 @@ export interface User {
   phoneNumber?: string | null | undefined;
   role: UserRole;
   avatarUrl?: string | null | undefined;
-  passwordHash: string;
+  passwordHash?: string | null | undefined;
   isEmailVerified: boolean;
   lastLogin?: Date | null | undefined;
   isBanned: boolean;

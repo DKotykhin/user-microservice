@@ -42,6 +42,7 @@ This microservice handles all user-related operations including authentication, 
 - Password reset functionality
 - Token refresh mechanism
 - Resend confirmation/reset emails
+- OAuth sign-in (Google, extensible to other providers)
 
 ### User Service (`UserService`)
 - Get user by ID
@@ -91,6 +92,13 @@ This microservice handles all user-related operations including authentication, 
 - Tracks ban/unban actions
 - Includes reason and duration
 
+**OAuthAccount**
+- Linked to User
+- `provider` - Provider name (e.g. `google`)
+- `providerId` - User's ID on the provider side
+- `accessToken` / `refreshToken` - Provider tokens
+- Unique constraint on `(provider, providerId)`
+
 ## gRPC Services
 
 ### Auth Service (`auth.v1`)
@@ -104,8 +112,22 @@ service AuthService {
   rpc InitResetPassword(Email) returns (StatusResponse)
   rpc ResendResetPasswordEmail(Email) returns (StatusResponse)
   rpc SetNewPassword(SetNewPasswordRequest) returns (StatusResponse)
+  rpc SignOutCurrentDevice(SignOutRequest) returns (StatusResponse)
+  rpc SignOutOtherDevices(SignOutRequest) returns (StatusResponse)
+  rpc SignOutAllDevices(Id) returns (StatusResponse)
+  rpc OAuthSignIn(OAuthSignInRequest) returns (AuthResponse)
 }
 ```
+
+**`OAuthSignIn` logic:**
+1. Rate-limit by IP to prevent account enumeration.
+2. Look up an existing `OAuthAccount` by `(provider, providerId)`.
+   - **Known account** — load the linked user directly.
+   - **No account yet** — find user by email or create a new one, then link the OAuth account.
+     - If an existing email/password user is found, their email is marked verified (the OAuth provider already confirmed it).
+3. Reject if the user is banned.
+4. Track the device; send a new-login notification email for unrecognized devices.
+5. Issue JWT access + refresh tokens (same flow as `SignIn`).
 
 ### User Service (`user.v1`)
 ```protobuf

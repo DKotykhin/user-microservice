@@ -196,7 +196,7 @@ export type UserGroupByOutputType = {
   phoneNumber: string | null
   role: $Enums.UserRole
   avatarUrl: string | null
-  passwordHash: string
+  passwordHash: string | null
   isEmailVerified: boolean
   lastLoginAt: Date | null
   isBanned: boolean
@@ -207,7 +207,7 @@ export type UserGroupByOutputType = {
   _max: UserMaxAggregateOutputType | null
 }
 
-type GetUserGroupByPayload<T extends UserGroupByArgs> = Prisma.PrismaPromise<
+export type GetUserGroupByPayload<T extends UserGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<UserGroupByOutputType, T['by']> &
       {
@@ -232,7 +232,7 @@ export type UserWhereInput = {
   phoneNumber?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   avatarUrl?: Prisma.StringNullableFilter<"User"> | string | null
-  passwordHash?: Prisma.StringFilter<"User"> | string
+  passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   isBanned?: Prisma.BoolFilter<"User"> | boolean
@@ -242,6 +242,7 @@ export type UserWhereInput = {
   passwordResetTokens?: Prisma.XOR<Prisma.PasswordResetTokenNullableScalarRelationFilter, Prisma.PasswordResetTokenWhereInput> | null
   banDetails?: Prisma.BanDetailsListRelationFilter
   deliveryAddresses?: Prisma.DeliveryAddressListRelationFilter
+  oauthAccounts?: Prisma.OAuthAccountListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -251,7 +252,7 @@ export type UserOrderByWithRelationInput = {
   phoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
   isBanned?: Prisma.SortOrder
@@ -261,6 +262,7 @@ export type UserOrderByWithRelationInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenOrderByWithRelationInput
   banDetails?: Prisma.BanDetailsOrderByRelationAggregateInput
   deliveryAddresses?: Prisma.DeliveryAddressOrderByRelationAggregateInput
+  oauthAccounts?: Prisma.OAuthAccountOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -273,7 +275,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   phoneNumber?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   avatarUrl?: Prisma.StringNullableFilter<"User"> | string | null
-  passwordHash?: Prisma.StringFilter<"User"> | string
+  passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   isBanned?: Prisma.BoolFilter<"User"> | boolean
@@ -283,6 +285,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   passwordResetTokens?: Prisma.XOR<Prisma.PasswordResetTokenNullableScalarRelationFilter, Prisma.PasswordResetTokenWhereInput> | null
   banDetails?: Prisma.BanDetailsListRelationFilter
   deliveryAddresses?: Prisma.DeliveryAddressListRelationFilter
+  oauthAccounts?: Prisma.OAuthAccountListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -292,7 +295,7 @@ export type UserOrderByWithAggregationInput = {
   phoneNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
   isBanned?: Prisma.SortOrder
@@ -313,7 +316,7 @@ export type UserScalarWhereWithAggregatesInput = {
   phoneNumber?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole
   avatarUrl?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
+  passwordHash?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   isBanned?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
@@ -328,7 +331,7 @@ export type UserCreateInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -338,6 +341,7 @@ export type UserCreateInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -347,7 +351,7 @@ export type UserUncheckedCreateInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -357,6 +361,7 @@ export type UserUncheckedCreateInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsUncheckedCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -366,7 +371,7 @@ export type UserUpdateInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -376,6 +381,7 @@ export type UserUpdateInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -385,7 +391,7 @@ export type UserUncheckedUpdateInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -395,6 +401,7 @@ export type UserUncheckedUpdateInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUncheckedUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -404,7 +411,7 @@ export type UserCreateManyInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -419,7 +426,7 @@ export type UserUpdateManyMutationInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -434,7 +441,7 @@ export type UserUncheckedUpdateManyInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -516,6 +523,20 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
+export type UserCreateNestedOneWithoutOauthAccountsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAccountsInput, Prisma.UserUncheckedCreateWithoutOauthAccountsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAccountsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutOauthAccountsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAccountsInput, Prisma.UserUncheckedCreateWithoutOauthAccountsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAccountsInput
+  upsert?: Prisma.UserUpsertWithoutOauthAccountsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthAccountsInput, Prisma.UserUpdateWithoutOauthAccountsInput>, Prisma.UserUncheckedUpdateWithoutOauthAccountsInput>
+}
+
 export type UserCreateNestedOneWithoutPasswordResetTokensInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetTokensInput, Prisma.UserUncheckedCreateWithoutPasswordResetTokensInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutPasswordResetTokensInput
@@ -572,6 +593,98 @@ export type UserUpdateOneRequiredWithoutDeliveryAddressesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDeliveryAddressesInput, Prisma.UserUpdateWithoutDeliveryAddressesInput>, Prisma.UserUncheckedUpdateWithoutDeliveryAddressesInput>
 }
 
+export type UserCreateWithoutOauthAccountsInput = {
+  id?: string
+  name?: string | null
+  email: string
+  phoneNumber?: string | null
+  role?: $Enums.UserRole
+  avatarUrl?: string | null
+  passwordHash?: string | null
+  isEmailVerified?: boolean
+  lastLoginAt?: Date | string | null
+  isBanned?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  emailVerificationTokens?: Prisma.EmailVerificationTokenCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedOneWithoutUserInput
+  banDetails?: Prisma.BanDetailsCreateNestedManyWithoutUserInput
+  deliveryAddresses?: Prisma.DeliveryAddressCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutOauthAccountsInput = {
+  id?: string
+  name?: string | null
+  email: string
+  phoneNumber?: string | null
+  role?: $Enums.UserRole
+  avatarUrl?: string | null
+  passwordHash?: string | null
+  isEmailVerified?: boolean
+  lastLoginAt?: Date | string | null
+  isBanned?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedOneWithoutUserInput
+  banDetails?: Prisma.BanDetailsUncheckedCreateNestedManyWithoutUserInput
+  deliveryAddresses?: Prisma.DeliveryAddressUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutOauthAccountsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAccountsInput, Prisma.UserUncheckedCreateWithoutOauthAccountsInput>
+}
+
+export type UserUpsertWithoutOauthAccountsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthAccountsInput, Prisma.UserUncheckedUpdateWithoutOauthAccountsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAccountsInput, Prisma.UserUncheckedCreateWithoutOauthAccountsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOauthAccountsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthAccountsInput, Prisma.UserUncheckedUpdateWithoutOauthAccountsInput>
+}
+
+export type UserUpdateWithoutOauthAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateOneWithoutUserNestedInput
+  banDetails?: Prisma.BanDetailsUpdateManyWithoutUserNestedInput
+  deliveryAddresses?: Prisma.DeliveryAddressUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOauthAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateOneWithoutUserNestedInput
+  banDetails?: Prisma.BanDetailsUncheckedUpdateManyWithoutUserNestedInput
+  deliveryAddresses?: Prisma.DeliveryAddressUncheckedUpdateManyWithoutUserNestedInput
+}
+
 export type UserCreateWithoutPasswordResetTokensInput = {
   id?: string
   name?: string | null
@@ -579,7 +692,7 @@ export type UserCreateWithoutPasswordResetTokensInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -588,6 +701,7 @@ export type UserCreateWithoutPasswordResetTokensInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -597,7 +711,7 @@ export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -606,6 +720,7 @@ export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsUncheckedCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -631,7 +746,7 @@ export type UserUpdateWithoutPasswordResetTokensInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -640,6 +755,7 @@ export type UserUpdateWithoutPasswordResetTokensInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -649,7 +765,7 @@ export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -658,6 +774,7 @@ export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUncheckedUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEmailVerificationTokensInput = {
@@ -667,7 +784,7 @@ export type UserCreateWithoutEmailVerificationTokensInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -676,6 +793,7 @@ export type UserCreateWithoutEmailVerificationTokensInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -685,7 +803,7 @@ export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -694,6 +812,7 @@ export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsUncheckedCreateNestedManyWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -719,7 +838,7 @@ export type UserUpdateWithoutEmailVerificationTokensInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -728,6 +847,7 @@ export type UserUpdateWithoutEmailVerificationTokensInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -737,7 +857,7 @@ export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -746,6 +866,7 @@ export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUncheckedUpdateManyWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutBanDetailsInput = {
@@ -755,7 +876,7 @@ export type UserCreateWithoutBanDetailsInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -764,6 +885,7 @@ export type UserCreateWithoutBanDetailsInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenCreateNestedOneWithoutUserInput
   passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedOneWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutBanDetailsInput = {
@@ -773,7 +895,7 @@ export type UserUncheckedCreateWithoutBanDetailsInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -782,6 +904,7 @@ export type UserUncheckedCreateWithoutBanDetailsInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedCreateNestedOneWithoutUserInput
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedOneWithoutUserInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutBanDetailsInput = {
@@ -807,7 +930,7 @@ export type UserUpdateWithoutBanDetailsInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -816,6 +939,7 @@ export type UserUpdateWithoutBanDetailsInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUpdateOneWithoutUserNestedInput
   passwordResetTokens?: Prisma.PasswordResetTokenUpdateOneWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBanDetailsInput = {
@@ -825,7 +949,7 @@ export type UserUncheckedUpdateWithoutBanDetailsInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -834,6 +958,7 @@ export type UserUncheckedUpdateWithoutBanDetailsInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedUpdateOneWithoutUserNestedInput
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateOneWithoutUserNestedInput
   deliveryAddresses?: Prisma.DeliveryAddressUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDeliveryAddressesInput = {
@@ -843,7 +968,7 @@ export type UserCreateWithoutDeliveryAddressesInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -852,6 +977,7 @@ export type UserCreateWithoutDeliveryAddressesInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenCreateNestedOneWithoutUserInput
   passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDeliveryAddressesInput = {
@@ -861,7 +987,7 @@ export type UserUncheckedCreateWithoutDeliveryAddressesInput = {
   phoneNumber?: string | null
   role?: $Enums.UserRole
   avatarUrl?: string | null
-  passwordHash: string
+  passwordHash?: string | null
   isEmailVerified?: boolean
   lastLoginAt?: Date | string | null
   isBanned?: boolean
@@ -870,6 +996,7 @@ export type UserUncheckedCreateWithoutDeliveryAddressesInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedCreateNestedOneWithoutUserInput
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedOneWithoutUserInput
   banDetails?: Prisma.BanDetailsUncheckedCreateNestedManyWithoutUserInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDeliveryAddressesInput = {
@@ -895,7 +1022,7 @@ export type UserUpdateWithoutDeliveryAddressesInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -904,6 +1031,7 @@ export type UserUpdateWithoutDeliveryAddressesInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUpdateOneWithoutUserNestedInput
   passwordResetTokens?: Prisma.PasswordResetTokenUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDeliveryAddressesInput = {
@@ -913,7 +1041,7 @@ export type UserUncheckedUpdateWithoutDeliveryAddressesInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -922,6 +1050,7 @@ export type UserUncheckedUpdateWithoutDeliveryAddressesInput = {
   emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedUpdateOneWithoutUserNestedInput
   passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateOneWithoutUserNestedInput
   banDetails?: Prisma.BanDetailsUncheckedUpdateManyWithoutUserNestedInput
+  oauthAccounts?: Prisma.OAuthAccountUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -932,11 +1061,13 @@ export type UserUncheckedUpdateWithoutDeliveryAddressesInput = {
 export type UserCountOutputType = {
   banDetails: number
   deliveryAddresses: number
+  oauthAccounts: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   banDetails?: boolean | UserCountOutputTypeCountBanDetailsArgs
   deliveryAddresses?: boolean | UserCountOutputTypeCountDeliveryAddressesArgs
+  oauthAccounts?: boolean | UserCountOutputTypeCountOauthAccountsArgs
 }
 
 /**
@@ -963,6 +1094,13 @@ export type UserCountOutputTypeCountDeliveryAddressesArgs<ExtArgs extends runtim
   where?: Prisma.DeliveryAddressWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOauthAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OAuthAccountWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -981,6 +1119,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   passwordResetTokens?: boolean | Prisma.User$passwordResetTokensArgs<ExtArgs>
   banDetails?: boolean | Prisma.User$banDetailsArgs<ExtArgs>
   deliveryAddresses?: boolean | Prisma.User$deliveryAddressesArgs<ExtArgs>
+  oauthAccounts?: boolean | Prisma.User$oauthAccountsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1035,6 +1174,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   passwordResetTokens?: boolean | Prisma.User$passwordResetTokensArgs<ExtArgs>
   banDetails?: boolean | Prisma.User$banDetailsArgs<ExtArgs>
   deliveryAddresses?: boolean | Prisma.User$deliveryAddressesArgs<ExtArgs>
+  oauthAccounts?: boolean | Prisma.User$oauthAccountsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1047,6 +1187,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     passwordResetTokens: Prisma.$PasswordResetTokenPayload<ExtArgs> | null
     banDetails: Prisma.$BanDetailsPayload<ExtArgs>[]
     deliveryAddresses: Prisma.$DeliveryAddressPayload<ExtArgs>[]
+    oauthAccounts: Prisma.$OAuthAccountPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1055,7 +1196,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     phoneNumber: string | null
     role: $Enums.UserRole
     avatarUrl: string | null
-    passwordHash: string
+    passwordHash: string | null
     isEmailVerified: boolean
     lastLoginAt: Date | null
     isBanned: boolean
@@ -1459,6 +1600,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   passwordResetTokens<T extends Prisma.User$passwordResetTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$passwordResetTokensArgs<ExtArgs>>): Prisma.Prisma__PasswordResetTokenClient<runtime.Types.Result.GetResult<Prisma.$PasswordResetTokenPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   banDetails<T extends Prisma.User$banDetailsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$banDetailsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BanDetailsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   deliveryAddresses<T extends Prisma.User$deliveryAddressesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$deliveryAddressesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeliveryAddressPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthAccounts<T extends Prisma.User$oauthAccountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthAccountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OAuthAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1696,6 +1838,11 @@ export type UserFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Skip the first `n` Users.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Users.
+   */
   distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
 }
 
@@ -1971,6 +2118,30 @@ export type User$deliveryAddressesArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.DeliveryAddressScalarFieldEnum | Prisma.DeliveryAddressScalarFieldEnum[]
+}
+
+/**
+ * User.oauthAccounts
+ */
+export type User$oauthAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OAuthAccount
+   */
+  select?: Prisma.OAuthAccountSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OAuthAccount
+   */
+  omit?: Prisma.OAuthAccountOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OAuthAccountInclude<ExtArgs> | null
+  where?: Prisma.OAuthAccountWhereInput
+  orderBy?: Prisma.OAuthAccountOrderByWithRelationInput | Prisma.OAuthAccountOrderByWithRelationInput[]
+  cursor?: Prisma.OAuthAccountWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OAuthAccountScalarFieldEnum | Prisma.OAuthAccountScalarFieldEnum[]
 }
 
 /**

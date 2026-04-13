@@ -73,6 +73,18 @@ export interface SignOutRequest {
   currentSessionId: string;
 }
 
+/** Message for OAuth sign in request */
+export interface OAuthSignInRequest {
+  provider: string;
+  providerId: string;
+  email?: string | null | undefined;
+  name?: string | null | undefined;
+  avatarUrl?: string | null | undefined;
+  accessToken?: string | null | undefined;
+  refreshToken?: string | null | undefined;
+  clientInfo?: ClientInfo | null | undefined;
+}
+
 export const AUTH_V1_PACKAGE_NAME = "auth.v1";
 
 /** AuthService defines the gRPC service for authentication. */
@@ -121,6 +133,10 @@ export interface AuthServiceClient {
   /** rpc to sign out a user from all devices */
 
   signOutAllDevices(request: Id): Observable<StatusResponse>;
+
+  /** rpc to sign in a user via OAuth provider */
+
+  oAuthSignIn(request: OAuthSignInRequest): Observable<AuthResponse>;
 }
 
 /** AuthService defines the gRPC service for authentication. */
@@ -171,6 +187,10 @@ export interface AuthServiceController {
   /** rpc to sign out a user from all devices */
 
   signOutAllDevices(request: Id): Promise<StatusResponse> | Observable<StatusResponse> | StatusResponse;
+
+  /** rpc to sign in a user via OAuth provider */
+
+  oAuthSignIn(request: OAuthSignInRequest): Promise<AuthResponse> | Observable<AuthResponse> | AuthResponse;
 }
 
 export function AuthServiceControllerMethods() {
@@ -187,6 +207,7 @@ export function AuthServiceControllerMethods() {
       "signOutCurrentDevice",
       "signOutOtherDevices",
       "signOutAllDevices",
+      "oAuthSignIn",
     ];
     for (const method of grpcMethods) {
       const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
