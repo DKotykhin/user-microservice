@@ -10,6 +10,7 @@ export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy
     const options: RedisOptions = {
       host: configService.getOrThrow<string>('REDIS_HOST'),
       port: configService.getOrThrow<number>('REDIS_PORT'),
+      db: configService.getOrThrow<number>('REDIS_DB'),
       maxRetriesPerRequest: 5,
       connectTimeout: 10000,
       enableOfflineQueue: true,

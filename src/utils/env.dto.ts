@@ -62,6 +62,11 @@ export class EnvironmentVariables {
   @IsPositive()
   readonly REDIS_PORT: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @IsPositive()
+  readonly REDIS_DB: number;
+
   @IsUrl({ protocols: ['amqp', 'amqps'], require_tld: false }, { message: 'RABBITMQ_URL must be a valid AMQP URL' })
   @IsNotEmpty()
   readonly RABBITMQ_URL: string;

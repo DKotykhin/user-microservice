@@ -1,24 +1,4 @@
 services:
-  user-database:
-    container_name: user-database
-    image: postgres:latest
-    ports:
-      - 5433:5432
-    env_file:
-      - ./.env.docker
-    volumes:
-      - user-db-data:/var/lib/postgresql/data/18
-    networks:
-      - coffeedoor-network
-
-  user-redis-db:
-    container_name: user-redis-db
-    image: redis:latest
-    ports:
-      - 6379:6379
-    networks:
-      - coffeedoor-network
-
   user-app:
     container_name: user-app
     image: user-microservice:latest
@@ -32,16 +12,9 @@ services:
       - '9101'
     env_file:
       - ./.env.docker
-    depends_on:
-      - user-database
-      - user-redis-db
     networks:
       - coffeedoor-network
 
 networks:
   coffeedoor-network:
       external: true
-
-volumes:
-  user-db-data:
-  user-redis-db-data:
