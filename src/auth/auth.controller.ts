@@ -19,7 +19,7 @@ import {
 } from 'src/generated-types/auth';
 import type { Id, StatusResponse, User } from 'src/generated-types/user';
 
-@Controller('auth')
+@Controller()
 @UseInterceptors(GrpcMetricsInterceptor, BusinessMetricsInterceptor)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);

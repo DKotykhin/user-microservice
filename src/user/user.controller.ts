@@ -20,7 +20,7 @@ import {
 } from 'src/generated-types/user';
 import { UserService } from './user.service';
 
-@Controller('user')
+@Controller()
 @UseInterceptors(GrpcMetricsInterceptor, BusinessMetricsInterceptor)
 export class UserController {
   private readonly logger = new Logger(UserController.name);
