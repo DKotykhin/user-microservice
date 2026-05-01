@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsPositive, IsString, IsUrl } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsPositive, IsString, IsUrl, Max, Min } from 'class-validator';
 
 export class EnvironmentVariables {
   @IsString()
@@ -9,9 +9,9 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   readonly TRANSPORT_URL: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  @IsPositive()
+  @IsInt()
+  @Min(0)
+  @Max(65535)
   readonly HTTP_PORT: number;
 
   @IsUrl({}, { message: 'FRONTEND_URL must be a valid URL' })
@@ -57,14 +57,14 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   readonly REDIS_HOST: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  @IsPositive()
+  @IsInt()
+  @Min(0)
+  @Max(65535)
   readonly REDIS_PORT: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  @IsPositive()
+  @IsInt()
+  @Min(0)
+  @Max(15)
   readonly REDIS_DB: number;
 
   @IsUrl({ protocols: ['amqp', 'amqps'], require_tld: false }, { message: 'RABBITMQ_URL must be a valid AMQP URL' })
